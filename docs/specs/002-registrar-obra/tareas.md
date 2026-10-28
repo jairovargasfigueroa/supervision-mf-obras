@@ -1,0 +1,11 @@
+# 002 · Registrar obra · tareas de `frontend/mf-obras`
+
+Requisitos y diseño: `docs/specs/002-registrar-obra/` de la carpeta que agrupa los proyectos. Contratos: `docs/contratos.md` de este proyecto.
+
+Marca cada tarea al terminarla (con sus pruebas y su commit).
+
+- [ ] Instalar `apollo-angular` 14 + `@apollo/client` 4 + `graphql`; configurar el cliente con el token del shell
+- [ ] Ruta `/obras/nueva`: formulario de 3 pasos con validaciones y selección de usuarios por rol
+- [ ] Paso 3: partidas e insumos dinámicos, total en vivo y diferencia con el monto
+- [ ] Guardar con `registrarObra`, mostrar errores por `codigo` y navegar al detalle con espera «Registrando contrato…»
+- [ ] Pruebas del cálculo del total y de la validación

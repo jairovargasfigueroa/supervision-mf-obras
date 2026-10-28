@@ -44,6 +44,7 @@ src/app/
 
 ## Documentación
 
+- `docs/estructura.md`: **librerías permitidas y estructura exacta de carpetas y archivos. Obligatorio leerlo antes de escribir código.**
 - `docs/app.md`: pantallas y qué no hace.
 - `docs/contratos.md`: qué consume y qué expone.
 - `docs/specs/`: especificaciones por funcionalidad (`requisitos.md`, `diseno.md`, `tareas.md`).

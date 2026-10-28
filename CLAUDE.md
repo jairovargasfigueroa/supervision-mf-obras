@@ -4,16 +4,28 @@ Microfrontend del ERP para obras: registrar obra, consultar obra (avance, plazo,
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** solo documentación. El proyecto del framework todavía no se generó (tarea de la fase 1 del plan general). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** proyecto generado con Native Federation configurado, sin pantallas. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
-- Angular · expuesto por Module Federation
-- Cliente GraphQL hacia el gateway
+- Node 24 · Angular 22 (standalone, builder esbuild) · SCSS · pruebas con Vitest
+- `@angular-architects/native-federation` 22 como **remoto**; comparte Angular con el shell
+- Previsto: apollo-angular 14 (GraphQL hacia el gateway)
+- Puerto: `4201`
 
 ## Comandos
 
-Se completan al generar el proyecto.
+```sh
+npm install
+npm start            # ng serve en http://localhost:4201 (se puede usar solo, sin el shell)
+npm test             # ng test (Vitest)
+npm run build        # genera dist/mf-obras/browser/remoteEntry.json
+```
+
+## Native Federation
+
+- `federation.config.mjs`: `exposes` define lo que carga el shell (hoy `./Component` → `src/app/app.ts`; se ajusta al definir las rutas).
+- Las entradas de `@angular/platform-browser/animations` están en `skip` porque no usamos `@angular/animations`.
 
 ## Estructura prevista
 
@@ -32,10 +44,10 @@ src/app/
 
 ## Documentación
 
-- `docs/app.md`: qué hace, pantallas o responsabilidades, y qué no hace.
+- `docs/app.md`: pantallas y qué no hace.
 - `docs/contratos.md`: qué consume y qué expone.
 - `docs/specs/`: especificaciones por funcionalidad (`requisitos.md`, `diseno.md`, `tareas.md`).
 
 ## Commits
 
-Conventional Commits en español e imperativo (`feat(alcance): descripción`). Sin coautoría ni firmas de la IA.
+Conventional Commits en español e imperativo (`feat(planillas): agrega formulario de planilla`). Sin coautoría ni firmas de la IA.

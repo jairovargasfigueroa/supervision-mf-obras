@@ -9,4 +9,4 @@
 
 ## Expone
 
-- Módulo remoto por Module Federation, montado por el shell en su ruta.
+- Módulo remoto por Native Federation, montado por el shell en su ruta.

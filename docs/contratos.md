@@ -1,11 +1,11 @@
 # ERP · Microfrontend Obras: contratos
 
-**Estado: pendiente.**
+**Estado:** lo de abajo es lo conocido; las operaciones exactas se definen en el `diseno.md` de cada funcionalidad.
 
 ## Consume
 
 - Gateway GraphQL: áreas obras, planillas, finanzas (contrato y saldo) y materiales (consumos frente a previsto).
-- Shell: sesión del usuario.
+- Shell: sesión del usuario en `window.plataforma.sesion` (token con `obtenerToken()`).
 
 ## Expone
 

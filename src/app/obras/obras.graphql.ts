@@ -31,9 +31,15 @@ export interface Partida {
   cantidadContratada: number;
   precioUnitario: number;
   meses: string | null;
+  /** Suma de lo aprobado en planillas (006). */
+  ejecutadaAcumulada: number;
+  avancePct: number;
 }
 
-/** Detalle básico de la obra (002). La 006 agrega avance, material, fotos, planillas y cobros. */
+/**
+ * Encabezado, indicadores, contrato y partidas de la obra (002 y 006). Material, fotos, planillas, cobros y finanzas
+ * se piden aparte, cada uno al abrir su sección (006, diseño).
+ */
 export interface Obra {
   id: string;
   nombre: string;
@@ -46,7 +52,17 @@ export interface Obra {
   almacenero: Usuario | null;
   cliente: Usuario | null;
   contrato: { contratoId: string | null; monto: number; plazoDias: number; anticipoPct: number; retencionPct: number };
+  avancePct: number;
+  plazoPct: number;
+  enRiesgo: boolean;
   partidas: Partida[];
+}
+
+/** Saldo y cobros del contrato (Finanzas); solo para admin y gerente (006, criterio 3). */
+export interface FinanzasObra {
+  saldoDisponible: number;
+  totalCobrado: number;
+  totalReservado: number;
 }
 
 export interface RegistrarObraEntrada {
@@ -111,7 +127,20 @@ export const CONSULTA_OBRA = gql<{ obra: Obra | null }, { id: string }>`
       almacenero { id nombre correo }
       cliente { id nombre correo }
       contrato { contratoId monto plazoDias anticipoPct retencionPct }
-      partidas { id codigo nombre unidad cantidadContratada precioUnitario meses }
+      avancePct
+      plazoPct
+      enRiesgo
+      partidas { id codigo nombre unidad cantidadContratada precioUnitario meses ejecutadaAcumulada avancePct }
+    }
+  }
+`;
+
+/** Finanzas de la obra: `null` sin error si el rol no es admin ni gerente; con SERVICIO_NO_DISPONIBLE si no responde. */
+export const CONSULTA_FINANZAS_OBRA = gql<{ obra: { id: string; finanzas: FinanzasObra | null } | null }, { id: string }>`
+  query FinanzasObra($id: ID!) {
+    obra(id: $id) {
+      id
+      finanzas { saldoDisponible totalCobrado totalReservado }
     }
   }
 `;

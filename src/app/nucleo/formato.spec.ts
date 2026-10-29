@@ -3,6 +3,7 @@ import {
   formatearFecha,
   formatearFechaHora,
   formatearMonto,
+  formatearNumero,
   formatearPorcentaje,
 } from './formato';
 
@@ -16,6 +17,11 @@ describe('formato', () => {
   it('formatea cantidades con hasta 3 decimales y la unidad', () => {
     expect(formatearCantidad(120.5, 'm²')).toBe('120,5 m²');
     expect(formatearCantidad(1234.5678, 'kg')).toBe('1.234,568 kg');
+  });
+
+  it('formatea números sin unidad con hasta 3 decimales', () => {
+    expect(formatearNumero(1234.5678)).toBe('1.234,568');
+    expect(formatearNumero(850)).toBe('850');
   });
 
   it('formatea porcentajes', () => {

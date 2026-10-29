@@ -36,7 +36,12 @@ export function formatearImporte(monto: number): string {
 
 /** `120,5 m²` (hasta 3 decimales). */
 export function formatearCantidad(cantidad: number, unidad: string): string {
-  return `${cantidades.format(cantidad)} ${unidad}`;
+  return `${formatearNumero(cantidad)} ${unidad}`;
+}
+
+/** `1.234,568` (hasta 3 decimales, sin unidad: para tablas que muestran la unidad en su propia columna). */
+export function formatearNumero(cantidad: number): string {
+  return cantidades.format(cantidad);
 }
 
 /** `32,5 %` */

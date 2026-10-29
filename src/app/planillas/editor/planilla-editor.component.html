@@ -1,0 +1,125 @@
+<section class="pagina">
+  <nav class="migas">
+    <a routerLink="." [relativeTo]="base">Obras</a> /
+    @if (obra(); as obra) {
+      <a [routerLink]="[obra.id]" [relativeTo]="base">{{ obra.nombre }}</a> /
+    }
+    Planilla
+  </nav>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (estado() === 'cargando') {
+    <p class="cargando">Cargando planilla…</p>
+  } @else if (estado() === 'no-encontrada') {
+    <app-estado-vacio
+      texto="No encontramos lo que buscas. Puede que ya no exista o que no tengas acceso."
+      icono="search_off"
+    />
+  } @else if (estado() === 'error') {
+    <app-estado-error [texto]="mensajeCarga()" (reintentar)="cargar()" />
+  } @else if (planilla(); as planilla) {
+    <header class="encabezado">
+      <div class="titulo">
+        <h1>Planilla N.º {{ planilla.numero }}</h1>
+        <app-estado-chip [estado]="planilla.estado" />
+      </div>
+      <span class="secundario">Periodo {{ nombrePeriodo(planilla.periodo) }}</span>
+    </header>
+
+    <section class="tarjeta">
+      <div class="tabla">
+        <table mat-table [dataSource]="planilla.lineas">
+          <ng-container matColumnDef="codigo" sticky>
+            <th mat-header-cell *matHeaderCellDef>Código</th>
+            <td mat-cell *matCellDef="let linea">{{ linea.codigo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef>Partida</th>
+            <td mat-cell *matCellDef="let linea">{{ linea.nombre }}</td>
+          </ng-container>
+          <ng-container matColumnDef="unidad">
+            <th mat-header-cell *matHeaderCellDef>Unidad</th>
+            <td mat-cell *matCellDef="let linea">{{ linea.unidad }}</td>
+          </ng-container>
+          <ng-container matColumnDef="cantidadContratada">
+            <th mat-header-cell *matHeaderCellDef class="numero">Contratada</th>
+            <td mat-cell *matCellDef="let linea" class="numero sv-numero">{{ numero(linea.cantidadContratada) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="acumuladoAnterior">
+            <th mat-header-cell *matHeaderCellDef class="numero">Acumulado anterior</th>
+            <td mat-cell *matCellDef="let linea" class="numero sv-numero">{{ numero(linea.acumuladoAnterior) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="cantidadPeriodo">
+            <th mat-header-cell *matHeaderCellDef class="numero">Cantidad del periodo</th>
+            <td mat-cell *matCellDef="let linea; let i = index" class="numero sv-numero">
+              @if (editable()) {
+                <mat-form-field class="cantidad" subscriptSizing="dynamic">
+                  <input
+                    matInput
+                    type="number"
+                    min="0"
+                    step="any"
+                    [formControl]="cantidades.at(i)"
+                    [attr.aria-label]="'Cantidad del periodo de ' + linea.codigo"
+                  />
+                </mat-form-field>
+                @if (filas()[i]?.supera) {
+                  <div class="error-fila">{{ supera(filas()[i].saldoDisponible) }}</div>
+                }
+              } @else {
+                {{ numero(linea.cantidadPeriodo) }}
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="acumuladoTotal">
+            <th mat-header-cell *matHeaderCellDef class="numero">Acumulado total</th>
+            <td mat-cell *matCellDef="let linea; let i = index" class="numero sv-numero">
+              {{ numero(filas()[i].acumuladoTotal) }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="saldo">
+            <th mat-header-cell *matHeaderCellDef class="numero">Saldo por ejecutar</th>
+            <td mat-cell *matCellDef="let linea; let i = index" class="numero sv-numero">
+              {{ numero(filas()[i].saldo) }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="monto">
+            <th mat-header-cell *matHeaderCellDef class="numero">Monto</th>
+            <td mat-cell *matCellDef="let linea; let i = index" class="numero sv-numero">
+              {{ monto(filas()[i].monto) }}
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let linea; columns: columnas; let i = index" [class.supera]="filas()[i]?.supera"></tr>
+        </table>
+      </div>
+
+      @if (totales(); as totales) {
+        <dl class="totales" aria-live="polite">
+          <dt>Subtotal</dt>
+          <dd class="sv-numero">{{ monto(totales.subtotal) }}</dd>
+          <dt>(−) Anticipo {{ porcentaje(planilla.anticipoPct) }}</dt>
+          <dd class="sv-numero">{{ monto(totales.descuentoAnticipo) }}</dd>
+          <dt>(−) Retención {{ porcentaje(planilla.retencionPct) }}</dt>
+          <dd class="sv-numero">{{ monto(totales.retencion) }}</dd>
+          <dt class="neto">Neto a cobrar</dt>
+          <dd class="neto sv-numero">{{ monto(totales.neto) }}</dd>
+        </dl>
+      }
+    </section>
+
+    @if (editable()) {
+      @if (hayFilasQueSuperan()) {
+        <div class="aviso aviso-error" role="alert">{{ mensajeFilasSuperan }}</div>
+      } @else if (errorAccion()) {
+        <div class="aviso aviso-error" role="alert">{{ errorAccion() }}</div>
+      }
+      <div class="acciones">
+        <button mat-stroked-button type="button" [disabled]="!puedeGuardar()" (click)="guardar()">
+          {{ ocupado() === 'guardando' ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    }
+  }
+</section>

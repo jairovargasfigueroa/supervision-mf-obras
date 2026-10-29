@@ -1,0 +1,78 @@
+.encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.tabla {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.mat-mdc-row,
+.mat-mdc-header-row {
+  height: 44px;
+}
+
+.numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cantidad {
+  width: 130px;
+  margin: 4px 0;
+
+  input {
+    text-align: right;
+  }
+}
+
+// Fila que supera lo contratado (criterio 5; docs/diseno-visual.md: error)
+tr.supera td {
+  color: var(--sv-error);
+  background: var(--sv-error-suave);
+}
+
+.error-fila {
+  margin-bottom: 4px;
+  font-size: 12px;
+  white-space: normal;
+  color: var(--sv-error);
+}
+
+.totales {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 24px;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 0 0 auto;
+
+  dt {
+    color: var(--sv-texto-secundario);
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+
+  .neto {
+    padding-top: 8px;
+    border-top: 2px solid var(--sv-texto);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--sv-texto);
+  }
+}

@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
@@ -16,7 +16,7 @@ import { ObrasService } from '../obras.service';
 /**
  * Pestaña «Planillas» (006, criterio 3): número, periodo, estado y neto, la más reciente primero. Las planillas llegan
  * con la 007: mientras el gateway no expone `planillas`, se muestra el estado vacío. Si no responde, «No disponible
- * por el momento» (criterio 4). El residente asignado ve «Nueva planilla» (007).
+ * por el momento» (criterio 4). El residente asignado ve «Nueva planilla» y el periodo abre la planilla (007).
  */
 @Component({
   selector: 'app-pestana-planillas',
@@ -31,6 +31,8 @@ export class PestanaPlanillasComponent implements OnInit {
   readonly puedeCrear = input(false);
 
   private readonly servicio = inject(ObrasService);
+  /** Rutas del microfrontend (/obras en el ERP): el editor está en planillas/{id} (007). */
+  protected readonly base = inject(ActivatedRoute).parent ?? null;
   private readonly destruir = inject(DestroyRef);
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');

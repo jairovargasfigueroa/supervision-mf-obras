@@ -39,6 +39,8 @@ describe('PestanaPlanillasComponent', () => {
       ['2', 'Diciembre 2026', 'Presentada', 'Bs 120.000,00'],
       ['1', 'Noviembre 2026', 'Aprobada', 'Bs 84.630,50'],
     ]);
+    // 007: el periodo abre la planilla (en el ERP, /obras/planillas/{id})
+    expect(elemento.querySelector('a[href="/planillas/pl2"]')?.textContent).toBe('Diciembre 2026');
   });
 
   it('«Nueva planilla» solo para el residente asignado (007, criterios 1 y 10)', () => {

@@ -5,6 +5,7 @@ import { ObraDetalleComponent } from './obras/detalle/obra-detalle.component';
 import { ObrasListaComponent } from './obras/lista/obras-lista.component';
 import { ObraNuevaComponent } from './obras/nueva/obra-nueva.component';
 import { ObrasService } from './obras/obras.service';
+import { PlanillaEditorComponent } from './planillas/editor/planilla-editor.component';
 import { PlanillaNuevaComponent } from './planillas/nueva/planilla-nueva.component';
 import { PlanillasService } from './planillas/planillas.service';
 
@@ -27,6 +28,8 @@ export const routes: Routes = [
       { path: '', component: ObrasListaComponent },
       // 002: solo admin; la pantalla muestra «No tienes permiso…» a los demás roles
       { path: 'nueva', component: ObraNuevaComponent, title: 'Nueva obra' },
+      // 007: editor (residente asignado) o lectura (admin, gerente y estados no editables); en el ERP, /obras/planillas/{id}
+      { path: 'planillas/:id', component: PlanillaEditorComponent, title: 'Planilla' },
       // Detalle básico (002); la 006 agrega las pestañas
       { path: ':id', component: ObraDetalleComponent },
       // 007: solo el residente asignado; los demás ven «No tienes permiso…»

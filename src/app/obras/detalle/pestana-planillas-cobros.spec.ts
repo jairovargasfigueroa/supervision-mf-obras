@@ -28,16 +28,17 @@ describe('PestanaPlanillasComponent', () => {
     return { fixture, elemento: fixture.nativeElement as HTMLElement };
   }
 
-  it('lista número, periodo, estado y neto, la más reciente primero (criterio 3)', () => {
+  it('lista número, periodo, estado, neto y número de cobro (008), la más reciente primero (criterio 3)', () => {
     const { elemento } = montar(() =>
       of<PlanillaResumen[]>([
-        { id: 'pl1', numero: 1, periodo: '2026-11', estado: 'APROBADA', neto: 84630.5 },
-        { id: 'pl2', numero: 2, periodo: '2026-12', estado: 'PRESENTADA', neto: 120000 },
+        { id: 'pl1', numero: 1, periodo: '2026-11', estado: 'APROBADA', neto: 84630.5, cobroNumero: 'COB-2026-0001' },
+        { id: 'pl2', numero: 2, periodo: '2026-12', estado: 'PRESENTADA', neto: 120000, cobroNumero: null },
       ]),
     );
+    expect(elemento.querySelector('tr.mat-mdc-header-row')?.textContent).toContain('Cobro');
     expect(filas(elemento)).toEqual([
-      ['2', 'Diciembre 2026', 'Presentada', 'Bs 120.000,00'],
-      ['1', 'Noviembre 2026', 'Aprobada', 'Bs 84.630,50'],
+      ['2', 'Diciembre 2026', 'Presentada', 'Bs 120.000,00', '—'],
+      ['1', 'Noviembre 2026', 'Aprobada', 'Bs 84.630,50', 'COB-2026-0001'],
     ]);
     // 007: el periodo abre la planilla (en el ERP, /obras/planillas/{id})
     expect(elemento.querySelector('a[href="/planillas/pl2"]')?.textContent).toBe('Diciembre 2026');

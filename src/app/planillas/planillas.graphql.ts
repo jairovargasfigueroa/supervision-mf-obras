@@ -2,7 +2,7 @@ import { gql } from 'apollo-angular';
 import type { EstadoObra, EstadoPlanilla, Usuario } from '../obras/obras.graphql';
 
 // Documentos GraphQL de las planillas (007, docs/contratos.md): planilla(id), crearPlanilla, guardarPlanilla y
-// presentarPlanilla, más lo que el editor necesita de la obra.
+// presentarPlanilla, más lo que el editor necesita de la obra. 008: observación y número de cobro.
 
 /** Una línea por partida de la obra; la calcula Obras (manda lo que devuelve el servicio). */
 export interface LineaPlanilla {
@@ -21,6 +21,12 @@ export interface LineaPlanilla {
   monto: number;
 }
 
+/** Cobro de la planilla aprobada (008): id y número los guarda Obras al recibir CobroEmitido. */
+export interface CobroPlanilla {
+  id: string;
+  numero: string;
+}
+
 export interface Planilla {
   id: string;
   obraId: string;
@@ -36,7 +42,10 @@ export interface Planilla {
   neto: number;
   anticipoPct: number;
   retencionPct: number;
+  /** Observación del cliente o motivo del fallo de la aprobación (008). */
   observacion: string | null;
+  /** 008: null hasta que la planilla se aprueba. */
+  cobro: CobroPlanilla | null;
   fotoIds: string[];
 }
 
@@ -82,6 +91,7 @@ const CAMPOS_PLANILLA = `
   anticipoPct
   retencionPct
   observacion
+  cobro { id numero }
   fotoIds
 `;
 

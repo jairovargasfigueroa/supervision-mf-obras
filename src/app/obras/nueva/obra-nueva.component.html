@@ -1,0 +1,74 @@
+<section class="pagina">
+  <nav class="migas"><a routerLink="..">Obras</a> / Nueva obra</nav>
+  <h1>Nueva obra</h1>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (!esAdmin()) {
+    <app-estado-vacio texto="No tienes permiso para hacer esta acción." icono="lock" />
+  } @else {
+    @if (errorGuardar(); as error) {
+      <div class="aviso aviso-error" role="alert">
+        {{ error.mensaje }}
+        @if (error.errores.length) {
+          <ul>
+            @for (errorCampo of error.errores; track $index) {
+              <li>{{ errorCampo.campo }}: {{ errorCampo.mensaje }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+    <mat-stepper class="tarjeta" linear #stepper>
+      <mat-step [stepControl]="formulario.controls.datos" label="Datos y asignaciones">
+        <app-paso-datos
+          [grupo]="formulario.controls.datos"
+          [usuarios]="usuarios()"
+          [estadoUsuarios]="estadoUsuarios()"
+          (reintentarUsuarios)="cargarUsuarios()"
+        />
+        <div class="acciones">
+          <a mat-button routerLink="..">Cancelar</a>
+          <button mat-flat-button type="button" (click)="siguiente('datos')">Siguiente: contrato</button>
+        </div>
+      </mat-step>
+
+      <mat-step [stepControl]="formulario.controls.contrato" label="Contrato">
+        <app-paso-contrato [grupo]="formulario.controls.contrato" />
+        <div class="acciones">
+          <button mat-button type="button" matStepperPrevious>Atrás</button>
+          <button mat-flat-button type="button" (click)="siguiente('contrato')">Siguiente: presupuesto</button>
+        </div>
+      </mat-step>
+
+      <mat-step label="Presupuesto">
+        <app-paso-presupuesto [partidas]="formulario.controls.partidas" [total]="resumen().total" />
+        @if (mensajePresupuesto() && (formulario.controls.partidas.touched || resumen().total > 0)) {
+          <div class="aviso aviso-error" role="alert">{{ mensajePresupuesto() }}</div>
+        }
+        <div class="acciones">
+          <button mat-button type="button" matStepperPrevious [disabled]="guardando()">Atrás</button>
+          <button mat-flat-button type="button" (click)="guardar()" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar obra' }}
+          </button>
+        </div>
+      </mat-step>
+    </mat-stepper>
+
+    <!-- Criterio 5: la suma y la diferencia se ven en todo momento, en cualquier paso -->
+    <aside class="resumen" [class.coincide]="resumen().coincide" aria-live="polite">
+      <div>
+        <span class="etiqueta">Presupuesto</span>
+        <strong class="sv-numero">{{ bs(resumen().total) }}</strong>
+      </div>
+      <div>
+        <span class="etiqueta">Monto del contrato</span>
+        <strong class="sv-numero">{{ bs(resumen().monto) }}</strong>
+      </div>
+      <div>
+        <span class="etiqueta">Diferencia</span>
+        <strong class="sv-numero diferencia">{{ bs(resumen().diferencia) }}</strong>
+      </div>
+    </aside>
+  }
+</section>

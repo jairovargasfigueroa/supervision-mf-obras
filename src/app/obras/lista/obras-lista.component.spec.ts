@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
 import type { ObraResumen } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
@@ -7,7 +8,7 @@ import { ObrasListaComponent } from './obras-lista.component';
 function montar(respuesta: () => Observable<ObraResumen[]>): HTMLElement {
   TestBed.configureTestingModule({
     imports: [ObrasListaComponent],
-    providers: [{ provide: ObrasService, useValue: { listar: respuesta } }],
+    providers: [provideRouter([]), { provide: ObrasService, useValue: { listar: respuesta } }],
   });
   const fixture = TestBed.createComponent(ObrasListaComponent);
   fixture.detectChanges();
@@ -55,6 +56,48 @@ describe('ObrasListaComponent', () => {
       const elemento = montar(() => of([obra]));
       expect(elemento.textContent).toContain('Edificio Las Palmas');
       expect(elemento.textContent).toContain('Inicio 01/11/2026 · Avance 32,5 %');
+      expect(elemento.textContent).toContain('En ejecución');
+      expect(elemento.querySelector('a.obra')?.getAttribute('href')).toBe('/b1');
+    });
+
+    it('una obra SIN_CONTRATO lleva la etiqueta «Registrando contrato» (002, criterio 7)', () => {
+      const obra: ObraResumen = {
+        id: 'b2',
+        nombre: 'Posta de Salud',
+        ubicacion: 'Montero',
+        estado: 'SIN_CONTRATO',
+        fechaInicio: '2026-11-01',
+        avancePct: 0,
+        plazoPct: 0,
+        enRiesgo: false,
+      };
+      expect(montar(() => of([obra])).querySelector('app-estado-chip')?.textContent?.trim()).toBe('Registrando contrato');
+    });
+
+    describe('botón «Nueva obra» (002, criterio 10)', () => {
+      const conRoles = (roles: string[]) => {
+        window.plataforma!.sesion = {
+          usuario: { id: 'u1', nombre: 'Usuario', roles },
+          obtenerToken: () => Promise.resolve('t'),
+          cerrarSesion: () => undefined,
+        };
+      };
+      const botonNueva = (elemento: HTMLElement) =>
+        [...elemento.querySelectorAll('a')].find((enlace) => enlace.textContent?.includes('Nueva obra'));
+
+      it('admin lo ve y el estado vacío ofrece «Registrar obra»', () => {
+        conRoles(['admin']);
+        const elemento = montar(() => of([]));
+        expect(botonNueva(elemento)?.getAttribute('href')).toBe('/nueva');
+        expect(elemento.textContent).toContain('Registrar obra');
+      });
+
+      it.each([['residente'], ['gerente']])('%s no lo ve', (rol) => {
+        conRoles([rol]);
+        const elemento = montar(() => of([]));
+        expect(botonNueva(elemento)).toBeUndefined();
+        expect(elemento.textContent).not.toContain('Registrar obra');
+      });
     });
   });
 });

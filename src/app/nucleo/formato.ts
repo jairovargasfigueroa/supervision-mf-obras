@@ -26,7 +26,12 @@ const fechasHoras = new Intl.DateTimeFormat(LOCALE, {
 
 /** `Bs 1.250.000,00` */
 export function formatearMonto(monto: number): string {
-  return `Bs ${montos.format(monto)}`;
+  return `Bs ${formatearImporte(monto)}`;
+}
+
+/** `1.250.000,00` (sin «Bs», para mensajes que ya lo traen: «el presupuesto (Bs {presupuesto})»). */
+export function formatearImporte(monto: number): string {
+  return montos.format(monto);
 }
 
 /** `120,5 m²` (hasta 3 decimales). */

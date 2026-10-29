@@ -8,4 +8,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] Ruta `/obras/nueva`: formulario de 3 pasos con validaciones y selección de usuarios por rol
 - [x] Paso 3: partidas e insumos dinámicos, total en vivo y diferencia con el monto (partidas dinámicas; los insumos quedan para cuando el gateway tenga `materiales`, de la 003: el diseño permite partidas sin insumos)
 - [x] Guardar con `registrarObra`, mostrar errores por `codigo` y navegar al detalle con espera «Registrando contrato…»
-- [ ] Pruebas del cálculo del total y de la validación
+- [x] Pruebas del cálculo del total y de la validación

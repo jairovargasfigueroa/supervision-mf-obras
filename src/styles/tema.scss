@@ -1,0 +1,67 @@
+// Copia del tema del shell (erp-shell/src/styles/tema.scss) para desarrollar mf-obras solo en el 4201.
+// Dentro del ERP manda el tema del shell: si cambia allí, se copia aquí.
+// Tema del ERP según docs/diseno-visual.md: Material 3 con paletas generadas desde el primario #0E4D5C
+// y el acento #F08A24 (_theme-colors.scss), Inter, densidad -2. Los tokens se ajustan a los valores exactos del diseño.
+@use '@angular/material' as mat;
+@use './theme-colors' as colores;
+
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        primary: colores.$primary-palette,
+        tertiary: colores.$tertiary-palette,
+        theme-type: light,
+      ),
+      typography: (
+        plain-family: 'Inter, system-ui, sans-serif',
+        brand-family: 'Inter, system-ui, sans-serif',
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: -2,
+    )
+  );
+  @include mat.theme-overrides(
+    (
+      primary: #0e4d5c,
+      on-primary: #ffffff,
+      primary-container: #e2eef1,
+      on-primary-container: #0a3741,
+      tertiary: #f08a24,
+      error: #b42318,
+      error-container: #fce8e6,
+      on-surface: #14232a,
+      on-surface-variant: #56676f,
+      outline: #dae2e5,
+      outline-variant: #dae2e5,
+      surface: #ffffff,
+      background: #f2f5f6,
+      corner-medium: 10px,
+      corner-small: 6px,
+    )
+  );
+
+  // Tokens del diseño para lo que Material no cubre (mismos nombres que docs/diseno-visual.md)
+  --sv-primario: #0e4d5c;
+  --sv-primario-oscuro: #0a3741;
+  --sv-primario-suave: #e2eef1;
+  --sv-acento: #f08a24;
+  --sv-acento-suave: #fdeedc;
+  --sv-texto: #14232a;
+  --sv-texto-secundario: #56676f;
+  --sv-borde: #dae2e5;
+  --sv-fondo: #f2f5f6;
+  --sv-superficie: #ffffff;
+  --sv-exito: #1b7343;
+  --sv-exito-suave: #e2f3e9;
+  --sv-atencion: #9a4a00;
+  --sv-atencion-suave: #fdeedc;
+  --sv-error: #b42318;
+  --sv-error-suave: #fce8e6;
+  --sv-fuente-numeros: 'IBM Plex Mono', ui-monospace, monospace;
+  --sv-radio-tarjeta: 10px;
+  --sv-radio-control: 6px;
+}

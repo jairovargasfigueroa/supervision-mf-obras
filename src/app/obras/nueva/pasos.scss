@@ -1,6 +1,8 @@
 // Estilos comunes de los tres pasos de «Nueva obra».
 :host {
   display: block;
+  // Deja lugar a la etiqueta flotante del primer campo (el contenido del paso recorta lo que sobresale)
+  padding-top: 8px;
 }
 
 .campos {

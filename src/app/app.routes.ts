@@ -1,3 +1,4 @@
+import { MAT_FORM_FIELD_DEFAULT_OPTIONS, type MatFormFieldDefaultOptions } from '@angular/material/form-field';
 import { Routes } from '@angular/router';
 import { provideGraphql } from './nucleo/graphql.config';
 import { ObraDetalleComponent } from './obras/detalle/obra-detalle.component';
@@ -10,7 +11,15 @@ import { ObrasService } from './obras/obras.service';
 export const routes: Routes = [
   {
     path: '',
-    providers: [provideGraphql(), ObrasService],
+    providers: [
+      provideGraphql(),
+      ObrasService,
+      // Con la densidad -2 del ERP, el campo «fill» oculta su etiqueta; «outline» la conserva
+      {
+        provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,
+        useValue: { appearance: 'outline' } satisfies MatFormFieldDefaultOptions,
+      },
+    ],
     children: [
       { path: '', component: ObrasListaComponent },
       // 002: solo admin; la pantalla muestra «No tienes permiso…» a los demás roles

@@ -3,6 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap, take, takeWhile, timer, type Subscription } from 'rxjs';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
@@ -18,6 +19,10 @@ import {
 import { SesionService } from '../../nucleo/sesion.service';
 import type { FinanzasObra, Obra } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
+import { PestanaCobrosComponent } from './pestana-cobros.component';
+import { PestanaFotosComponent } from './pestana-fotos.component';
+import { PestanaMaterialComponent } from './pestana-material.component';
+import { PestanaPlanillasComponent } from './pestana-planillas.component';
 
 /** Cada cuánto se vuelve a consultar la obra mientras Finanzas registra el contrato, y hasta cuándo (diseño 002). */
 export const INTERVALO_ESPERA_MS = 2000;
@@ -35,7 +40,8 @@ export function anchoBarra(porcentaje: number): number {
 
 /**
  * Detalle de la obra (006, criterio 3): encabezado con las asignaciones, avance frente al plazo, contrato (con saldo
- * y total cobrado de Finanzas para admin y gerente) y tabla de partidas. Una obra que el usuario no ve muestra «Obra
+ * y total cobrado de Finanzas para admin y gerente), tabla de partidas y pestañas Material, Fotos, Planillas y Cobros
+ * (esta solo para admin y gerente), cada una con su consulta y su error (criterio 4). Una obra que el usuario no ve muestra «Obra
  * no encontrada» (criterio 6). Mientras el contrato se registra muestra «Registrando contrato…» y consulta cada 2 s
  * (máx. 30 s) hasta EN_EJECUCION o rechazo, que muestra el motivo (002, criterios 8 y 9).
  */
@@ -46,9 +52,14 @@ export function anchoBarra(porcentaje: number): number {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatTableModule,
+    MatTabsModule,
     EstadoChipComponent,
     EstadoErrorComponent,
     EstadoVacioComponent,
+    PestanaMaterialComponent,
+    PestanaFotosComponent,
+    PestanaPlanillasComponent,
+    PestanaCobrosComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './obra-detalle.component.html',

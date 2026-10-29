@@ -4,6 +4,7 @@ import {
   formatearFechaHora,
   formatearMonto,
   formatearNumero,
+  formatearPeriodo,
   formatearPorcentaje,
 } from './formato';
 
@@ -31,6 +32,11 @@ describe('formato', () => {
 
   it('formatea fechas sin hora sin cambiar el día', () => {
     expect(formatearFecha('2026-11-15')).toBe('15/11/2026');
+  });
+
+  it('formatea periodos mensuales con el nombre del mes', () => {
+    expect(formatearPeriodo('2026-11')).toBe('Noviembre 2026');
+    expect(formatearPeriodo('2027-01')).toBe('Enero 2027');
   });
 
   it('formatea instantes en hora de La Paz (UTC−4)', () => {

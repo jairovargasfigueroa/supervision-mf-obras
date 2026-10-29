@@ -58,6 +58,15 @@ export function formatearFecha(fecha: string): string {
   return fechas.format(new Date(fecha));
 }
 
+const meses = new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC', month: 'long' });
+
+/** `Noviembre 2026` para el periodo `2026-11`. */
+export function formatearPeriodo(periodo: string): string {
+  const [anio, mes] = periodo.split('-').map(Number);
+  const nombre = meses.format(new Date(Date.UTC(anio, mes - 1, 1)));
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`;
+}
+
 /** `15/11/2026 14:30` en hora de La Paz. */
 export function formatearFechaHora(instante: string): string {
   return fechasHoras.format(new Date(instante)).replace(', ', ' ');

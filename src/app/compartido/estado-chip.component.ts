@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatChipsModule } from '@angular/material/chips';
-import type { EstadoObra } from '../obras/obras.graphql';
+import type { EstadoCobro, EstadoObra, EstadoPlanilla } from '../obras/obras.graphql';
 
 /** Etiqueta de cada estado de obra. SIN_CONTRATO se muestra «Registrando contrato» (002, criterio 7). */
 export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
@@ -9,12 +9,23 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
   CONCLUIDA: 'Concluida',
 };
 
-/** Estados que se muestran como chip. EN_RIESGO es la etiqueta «En riesgo» de la obra (006, 009). */
-export type EstadoMostrable = EstadoObra | 'EN_RIESGO';
+/**
+ * Estados que se muestran como chip: de obra, de planilla y de cobro. EN_RIESGO es la etiqueta «En riesgo» de la
+ * obra (006, 009) y EXCEDIDO la del consumo excedido (006, pestaña «Material»).
+ */
+export type EstadoMostrable = EstadoObra | EstadoPlanilla | EstadoCobro | 'EN_RIESGO' | 'EXCEDIDO';
 
 const ETIQUETAS: Record<EstadoMostrable, string> = {
   ...ETIQUETA_ESTADO_OBRA,
+  BORRADOR: 'Borrador',
+  PRESENTADA: 'Presentada',
+  APROBANDO: 'En aprobación',
+  APROBADA: 'Aprobada',
+  OBSERVADA: 'Observada',
+  PENDIENTE: 'Pendiente',
+  VENCIDO: 'Vencido',
   EN_RIESGO: 'En riesgo',
+  EXCEDIDO: 'Excedido',
 };
 
 /** Color de cada estado (docs/diseno-visual.md, «Estados del dominio → color»). */
@@ -22,7 +33,15 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
   SIN_CONTRATO: 'neutro',
   EN_EJECUCION: 'primario',
   CONCLUIDA: 'apagado',
+  BORRADOR: 'neutro',
+  PRESENTADA: 'atencion',
+  APROBANDO: 'atencion',
+  APROBADA: 'exito',
+  OBSERVADA: 'error',
+  PENDIENTE: 'exito',
+  VENCIDO: 'error',
   EN_RIESGO: 'atencion',
+  EXCEDIDO: 'error',
 };
 
 /**

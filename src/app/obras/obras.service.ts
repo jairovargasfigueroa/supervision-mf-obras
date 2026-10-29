@@ -2,20 +2,31 @@ import { Injectable, inject } from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { map, type Observable } from 'rxjs';
 import {
+  CONSULTA_COBROS,
   CONSULTA_FINANZAS_OBRA,
+  CONSULTA_FOTOS,
+  CONSULTA_MATERIAL_COMPARADO,
   CONSULTA_OBRA,
   CONSULTA_OBRAS,
+  CONSULTA_PLANILLAS,
   CONSULTA_USUARIOS,
   MUTACION_REGISTRAR_OBRA,
+  type Cobro,
+  type ComparacionMaterial,
   type EstadoObra,
   type FiltrosObras,
   type FinanzasObra,
+  type FotosPagina,
   type Obra,
   type ObraResumen,
+  type PlanillaResumen,
   type RegistrarObraEntrada,
   type Rol,
   type Usuario,
 } from './obras.graphql';
+
+/** Fotos por página (el valor por defecto de `fotos` en el contrato; Obras acepta hasta 100). */
+export const TAMANO_PAGINA_FOTOS = 50;
 
 /** Datos del área de obras: los componentes no usan Apollo directo (docs/estructura.md). */
 @Injectable()
@@ -58,6 +69,33 @@ export class ObrasService {
     return this.apollo
       .query({ query: CONSULTA_FINANZAS_OBRA, variables: { id }, fetchPolicy: 'network-only' })
       .pipe(map((resultado) => resultado.data?.obra?.finanzas ?? null));
+  }
+
+  /** Material usado frente al previsto del periodo `AAAA-MM`; null si el gateway no lo devuelve. */
+  materialComparado(id: string, periodo: string): Observable<ComparacionMaterial | null> {
+    return this.apollo
+      .query({ query: CONSULTA_MATERIAL_COMPARADO, variables: { id, periodo }, fetchPolicy: 'network-only' })
+      .pipe(map((resultado) => resultado.data?.obra?.materialComparado ?? null));
+  }
+
+  /** Una página de fotos de avance, de la más reciente a la más antigua (orden de Obras). */
+  fotos(id: string, pagina: number, tamano = TAMANO_PAGINA_FOTOS): Observable<FotosPagina> {
+    return this.apollo
+      .query({ query: CONSULTA_FOTOS, variables: { id, pagina, tamano }, fetchPolicy: 'network-only' })
+      .pipe(map((resultado) => resultado.data?.obra?.fotos ?? { items: [], total: 0, pagina, tamano }));
+  }
+
+  planillas(id: string): Observable<PlanillaResumen[]> {
+    return this.apollo
+      .query({ query: CONSULTA_PLANILLAS, variables: { id }, fetchPolicy: 'network-only' })
+      .pipe(map((resultado) => resultado.data?.obra?.planillas ?? []));
+  }
+
+  /** Cobros de la obra (Finanzas); null sin error si el rol no es admin ni gerente. */
+  cobros(id: string): Observable<Cobro[] | null> {
+    return this.apollo
+      .query({ query: CONSULTA_COBROS, variables: { id }, fetchPolicy: 'network-only' })
+      .pipe(map((resultado) => resultado.data?.obra?.cobros ?? null));
   }
 
   registrar(entrada: RegistrarObraEntrada): Observable<{ id: string; estado: EstadoObra }> {

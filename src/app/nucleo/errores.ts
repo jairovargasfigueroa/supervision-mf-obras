@@ -77,6 +77,18 @@ export function mensajeDeError(error: ErrorLeido, datos: Record<string, string> 
   return completar(plantilla, datos);
 }
 
+/**
+ * El gateway todavía no expone el campo pedido: el esquema rechaza la consulta (`GRAPHQL_VALIDATION_FAILED` de Apollo
+ * Server, o un 400 sin cuerpo GraphQL). Sirve para mostrar el estado vacío en una sección que llega con otra
+ * funcionalidad (por ejemplo `planillas`, de la 007) en lugar de un error.
+ */
+export function esCampoNoExpuesto(error: unknown): boolean {
+  if (CombinedGraphQLErrors.is(error)) {
+    return error.errors.some((e) => e.extensions?.['code'] === 'GRAPHQL_VALIDATION_FAILED');
+  }
+  return ServerError.is(error) && error.statusCode === 400;
+}
+
 /** El código y el servicio van a la consola para soporte; nunca al usuario. */
 export function registrarError(contexto: string, error: ErrorLeido): void {
   console.error(`[mf-obras] ${contexto}`, { codigo: error.codigo, servicio: error.servicio, estado: error.estado });

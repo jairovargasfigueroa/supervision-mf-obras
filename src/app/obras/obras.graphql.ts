@@ -1,8 +1,11 @@
 import { gql } from 'apollo-angular';
 
-// Documentos GraphQL del área de obras (docs/contratos.md): obras, obra, usuarios y registrarObra.
+// Documentos GraphQL del área de obras (docs/contratos.md): obras, obra (y las secciones del detalle), usuarios y
+// registrarObra.
 
 export type EstadoObra = 'SIN_CONTRATO' | 'EN_EJECUCION' | 'CONCLUIDA';
+export type EstadoPlanilla = 'BORRADOR' | 'PRESENTADA' | 'APROBANDO' | 'APROBADA' | 'OBSERVADA';
+export type EstadoCobro = 'PENDIENTE' | 'VENCIDO';
 
 export type Rol = 'admin' | 'residente' | 'gerente' | 'maestro' | 'almacenero' | 'cliente';
 
@@ -63,6 +66,68 @@ export interface FinanzasObra {
   saldoDisponible: number;
   totalCobrado: number;
   totalReservado: number;
+}
+
+/** Lo que el detalle usa del material del catálogo. */
+export interface MaterialCorto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  unidadPlural: string;
+}
+
+/** Material usado frente al previsto de una partida en el periodo (006, criterios 3 y 5). */
+export interface FilaComparacion {
+  partidaId: string;
+  partidaCodigo: string;
+  material: MaterialCorto;
+  previsto: number;
+  usado: number;
+  /** usado − previsto (la calcula el gateway). */
+  diferencia: number;
+  /** usado > 1,20 × previsto (lo calcula el gateway). */
+  excedido: boolean;
+}
+
+export interface ComparacionMaterial {
+  periodo: string;
+  hayPlanilla: boolean;
+  filas: FilaComparacion[];
+}
+
+/** Foto de avance (005); la URL firmada vence a los 30 minutos. */
+export interface Foto {
+  id: string;
+  partidaId: string;
+  registradoPor: Pick<Usuario, 'id' | 'nombre'> | null;
+  registradoEn: string;
+  urlDescarga: string;
+}
+
+export interface FotosPagina {
+  items: Foto[];
+  total: number;
+  pagina: number;
+  tamano: number;
+}
+
+export interface PlanillaResumen {
+  id: string;
+  numero: number;
+  periodo: string;
+  estado: EstadoPlanilla;
+  neto: number;
+}
+
+export interface Cobro {
+  id: string;
+  numero: string;
+  planillaId: string;
+  montoNeto: number;
+  emitidoEn: string;
+  venceEn: string;
+  estado: EstadoCobro;
 }
 
 export interface RegistrarObraEntrada {
@@ -141,6 +206,76 @@ export const CONSULTA_FINANZAS_OBRA = gql<{ obra: { id: string; finanzas: Finanz
     obra(id: $id) {
       id
       finanzas { saldoDisponible totalCobrado totalReservado }
+    }
+  }
+`;
+
+// Una consulta por pestaña del detalle: cada una se pide al abrirla y maneja su propio error (006, criterio 4).
+
+/** `null` con el error del servicio (Obras o Materiales) si alguno no responde. */
+export const CONSULTA_MATERIAL_COMPARADO = gql<
+  { obra: { id: string; materialComparado: ComparacionMaterial | null } | null },
+  { id: string; periodo: string }
+>`
+  query MaterialComparado($id: ID!, $periodo: String!) {
+    obra(id: $id) {
+      id
+      materialComparado(periodo: $periodo) {
+        periodo
+        hayPlanilla
+        filas {
+          partidaId
+          partidaCodigo
+          material { id codigo nombre unidad unidadPlural }
+          previsto
+          usado
+          diferencia
+          excedido
+        }
+      }
+    }
+  }
+`;
+
+export const CONSULTA_FOTOS = gql<
+  { obra: { id: string; fotos: FotosPagina } | null },
+  { id: string; pagina: number; tamano: number }
+>`
+  query FotosObra($id: ID!, $pagina: Int!, $tamano: Int!) {
+    obra(id: $id) {
+      id
+      fotos(pagina: $pagina, tamano: $tamano) {
+        items {
+          id
+          partidaId
+          registradoPor { id nombre }
+          registradoEn
+          urlDescarga
+        }
+        total
+        pagina
+        tamano
+      }
+    }
+  }
+`;
+
+/** 007: el gateway la expone cuando Obras tenga `GET /obras/{id}/planillas`. */
+export const CONSULTA_PLANILLAS = gql<{ obra: { id: string; planillas: PlanillaResumen[] } | null }, { id: string }>`
+  query PlanillasObra($id: ID!) {
+    obra(id: $id) {
+      id
+      planillas { id numero periodo estado neto }
+    }
+  }
+`;
+
+/** `null` sin error si el rol no es admin ni gerente. */
+export const CONSULTA_COBROS = gql<{ obra: { id: string; cobros: Cobro[] | null } | null }, { id: string }>`
+  query CobrosObra($id: ID!) {
+    obra(id: $id) {
+      id
+      cobros { id numero planillaId montoNeto emitidoEn venceEn estado }
     }
   }
 `;

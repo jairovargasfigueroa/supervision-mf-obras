@@ -163,5 +163,31 @@
         </table>
       </div>
     </section>
+
+    <!-- Cada pestaña se crea al abrirla (matTabContent): pide sus datos y maneja su propio error (criterio 4) -->
+    <mat-tab-group class="pestanas" mat-stretch-tabs="false" mat-align-tabs="start">
+      <mat-tab label="Material">
+        <ng-template matTabContent>
+          <app-pestana-material [obraId]="obra.id" [fechaInicio]="obra.fechaInicio" />
+        </ng-template>
+      </mat-tab>
+      <mat-tab label="Fotos">
+        <ng-template matTabContent>
+          <app-pestana-fotos [obraId]="obra.id" [partidas]="obra.partidas" />
+        </ng-template>
+      </mat-tab>
+      <mat-tab label="Planillas">
+        <ng-template matTabContent>
+          <app-pestana-planillas [obraId]="obra.id" />
+        </ng-template>
+      </mat-tab>
+      @if (veFinanzas()) {
+        <mat-tab label="Cobros">
+          <ng-template matTabContent>
+            <app-pestana-cobros [obraId]="obra.id" />
+          </ng-template>
+        </mat-tab>
+      }
+    </mat-tab-group>
   }
 </section>

@@ -69,7 +69,17 @@ function montar(
     providers: [
       provideRouter([]),
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'b1' })) } },
-      { provide: ObrasService, useValue: { obtener, finanzas: opciones.finanzas ?? (() => of(FINANZAS)) } },
+      {
+        provide: ObrasService,
+        useValue: {
+          obtener,
+          finanzas: opciones.finanzas ?? (() => of(FINANZAS)),
+          materialComparado: (_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: [] }),
+          fotos: () => of({ items: [], total: 0, pagina: 1, tamano: 50 }),
+          planillas: () => of([]),
+          cobros: () => of([]),
+        },
+      },
     ],
   });
   const fixture = TestBed.createComponent(ObraDetalleComponent);

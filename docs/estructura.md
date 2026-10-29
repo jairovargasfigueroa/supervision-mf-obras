@@ -23,18 +23,19 @@ src/
       sesion.service.ts              # lee window.plataforma.sesion (signals)
       graphql.config.ts
       errores.ts                     # extensions.codigo → mensaje para el usuario
-      formato.ts
+      formato.ts                     # montos, cantidades, porcentajes, fechas y periodos («Noviembre 2026»)
+      periodos.ts                    # mes actual en La Paz y meses desde el inicio de la obra (cálculo puro)
     obras/
       lista/        obras-lista.component.ts (+ .html, .scss)
       nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro)
-      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts
+      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas)
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/
       nueva/        planilla-nueva.component.ts
       editor/       planilla-editor.component.ts, totales.ts (cálculo puro, solo ayuda visual)
       planillas.graphql.ts, planillas.service.ts
-    compartido/     estado-chip.component.ts, estado-vacio.component.ts, estado-error.component.ts
+    compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```
 

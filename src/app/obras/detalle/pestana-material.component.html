@@ -1,0 +1,68 @@
+<div class="herramientas">
+  <mat-form-field subscriptSizing="dynamic">
+    <mat-label>Periodo</mat-label>
+    <mat-select [value]="periodo()" (selectionChange)="elegir($event.value)">
+      @for (opcion of periodos(); track opcion) {
+        <mat-option [value]="opcion">{{ nombrePeriodo(opcion) }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (estado() === 'cargando') {
+  <p class="cargando">Cargando material…</p>
+} @else if (estado() === 'error') {
+  <app-estado-error (reintentar)="cargar()" />
+} @else {
+  @if (comparacion(); as comparacion) {
+    @if (!comparacion.hayPlanilla) {
+      <div class="aviso aviso-atencion" role="status">
+        <mat-icon fontSet="material-symbols-outlined">info</mat-icon>
+        <span>Sin planilla en este periodo</span>
+      </div>
+    }
+    @if (comparacion.filas.length === 0) {
+      <app-estado-vacio texto="No hay material previsto ni usado en este periodo." icono="inventory_2" />
+    } @else {
+      <div class="tabla">
+        <table mat-table [dataSource]="comparacion.filas">
+          <ng-container matColumnDef="partida" sticky>
+            <th mat-header-cell *matHeaderCellDef>Partida</th>
+            <td mat-cell *matCellDef="let fila">{{ fila.partidaCodigo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="material">
+            <th mat-header-cell *matHeaderCellDef>Material</th>
+            <td mat-cell *matCellDef="let fila">{{ fila.material.nombre }}</td>
+          </ng-container>
+          <ng-container matColumnDef="previsto">
+            <th mat-header-cell *matHeaderCellDef class="numero">Previsto</th>
+            <td mat-cell *matCellDef="let fila" class="numero sv-numero">
+              {{ cantidad(fila.previsto, fila.material) }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="usado">
+            <th mat-header-cell *matHeaderCellDef class="numero">Usado</th>
+            <td mat-cell *matCellDef="let fila" class="numero sv-numero">{{ cantidad(fila.usado, fila.material) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="diferencia">
+            <th mat-header-cell *matHeaderCellDef class="numero">Diferencia</th>
+            <td mat-cell *matCellDef="let fila" class="numero">
+              <span class="sv-numero">{{ diferencia(fila.diferencia, fila.material) }}</span>
+              @if (fila.excedido) {
+                <app-estado-chip class="marca" estado="EXCEDIDO" />
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas" [class.excedido]="fila.excedido"></tr>
+        </table>
+      </div>
+    }
+    <p class="ayuda">
+      Previsto: cantidad de la partida en la planilla del periodo × material por unidad. En rojo: usado mayor a 1,2
+      veces lo previsto.
+    </p>
+  } @else {
+    <app-estado-vacio texto="No hay material previsto ni usado en este periodo." icono="inventory_2" />
+  }
+}

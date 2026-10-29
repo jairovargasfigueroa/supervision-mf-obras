@@ -6,5 +6,5 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Lista `/obras` con filtros y etiqueta «En riesgo»
 - [x] Detalle `/obras/:id`: encabezado, indicadores y tabla de partidas
-- [ ] Pestañas Material (selector de periodo), Fotos (galería por partida), Planillas y Cobros, cada una con su manejo de error
+- [x] Pestañas Material (selector de periodo), Fotos (galería por partida), Planillas y Cobros, cada una con su manejo de error
 - [ ] Pruebas de componentes

@@ -1,0 +1,75 @@
+<section class="pagina">
+  <header class="titulo">
+    <h1>Obras</h1>
+    @if (sesion.dentroDelErp() && esAdmin()) {
+      <a mat-flat-button routerLink="nueva">
+        <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+        Nueva obra
+      </a>
+    }
+  </header>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else {
+    <div class="filtros">
+      <mat-form-field class="busqueda" subscriptSizing="dynamic">
+        <mat-label>Buscar por nombre</mat-label>
+        <mat-icon matPrefix fontSet="material-symbols-outlined">search</mat-icon>
+        <input matInput type="search" [formControl]="filtroBusqueda" autocomplete="off" />
+      </mat-form-field>
+      <mat-form-field class="estado" subscriptSizing="dynamic">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="filtroEstado">
+          <mat-option value="">Todos</mat-option>
+          @for (opcion of estados; track opcion[0]) {
+            <mat-option [value]="opcion[0]">{{ opcion[1] }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (estado() === 'cargando') {
+      <p class="cargando">Cargando obras…</p>
+    } @else if (estado() === 'error') {
+      <app-estado-error (reintentar)="cargar()" />
+    } @else if (obras().length === 0 && conFiltros()) {
+      <app-estado-vacio
+        texto="Ninguna obra coincide con la búsqueda."
+        icono="search_off"
+        accion="Quitar filtros"
+        (pulsado)="limpiarFiltros()"
+      />
+    } @else if (obras().length === 0) {
+      <app-estado-vacio
+        texto="Aún no hay obras."
+        icono="apartment"
+        [accion]="esAdmin() ? 'Registrar obra' : undefined"
+        (pulsado)="registrar()"
+      />
+    } @else {
+      <ul class="obras">
+        @for (obra of obras(); track obra.id) {
+          <li>
+            <a class="obra" [routerLink]="obra.id">
+              <span class="datos">
+                <strong>{{ obra.nombre }}</strong>
+                <span class="secundario">{{ obra.ubicacion }}</span>
+                <span class="indicadores">
+                  Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }} · Plazo transcurrido
+                  {{ porcentaje(obra.plazoPct) }}
+                </span>
+              </span>
+              <span class="chips">
+                @if (obra.enRiesgo) {
+                  <app-estado-chip class="riesgo" estado="EN_RIESGO" />
+                }
+                <app-estado-chip [estado]="obra.estado" />
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

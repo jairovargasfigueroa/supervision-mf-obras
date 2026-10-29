@@ -1,5 +1,5 @@
 import { CombinedGraphQLErrors, ServerError } from '@apollo/client/errors';
-import { MENSAJE_SIN_CONEXION, leerError, mensajeDeError, type ErrorLeido } from './errores';
+import { MENSAJE_SIN_CONEXION, esCampoNoExpuesto, leerError, mensajeDeError, type ErrorLeido } from './errores';
 
 const error = (codigo: string | null, estado: number | null = 422): ErrorLeido => ({
   codigo,
@@ -62,6 +62,23 @@ describe('errores (extensions.codigo → docs/mensajes.md)', () => {
     expect(mensajeDeError(leido)).toBe(
       'Este servicio no está disponible por el momento. Intenta de nuevo en unos minutos.',
     );
+  });
+
+  it('reconoce un campo que el gateway todavía no expone', () => {
+    const validacion = new CombinedGraphQLErrors({
+      data: null,
+      errors: [{ message: 'Cannot query field "planillas"', extensions: { code: 'GRAPHQL_VALIDATION_FAILED' } }],
+    });
+    expect(esCampoNoExpuesto(validacion)).toBe(true);
+    expect(esCampoNoExpuesto(new ServerError('x', { response: new Response('', { status: 400 }), bodyText: '' }))).toBe(
+      true,
+    );
+    const caido = new CombinedGraphQLErrors({
+      data: null,
+      errors: [{ message: 'x', extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', estado: 503 } }],
+    });
+    expect(esCampoNoExpuesto(caido)).toBe(false);
+    expect(esCampoNoExpuesto(new TypeError('Failed to fetch'))).toBe(false);
   });
 
   it('sin respuesta del servidor muestra el mensaje de conexión', () => {

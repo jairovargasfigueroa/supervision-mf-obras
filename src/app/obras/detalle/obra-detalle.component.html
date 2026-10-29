@@ -11,12 +11,35 @@
   } @else if (estado() === 'error') {
     <app-estado-error [texto]="mensajeError()" (reintentar)="cargar()" />
   } @else if (obra(); as obra) {
-    <header class="titulo">
-      <div>
+    <header class="encabezado">
+      <div class="titulo">
         <h1>{{ obra.nombre }}</h1>
-        <span class="secundario">{{ obra.ubicacion }} · Inicio {{ fecha(obra.fechaInicio) }}</span>
+        <span class="chips">
+          <app-estado-chip [estado]="obra.estado" />
+          @if (obra.enRiesgo) {
+            <app-estado-chip estado="EN_RIESGO" />
+          }
+        </span>
       </div>
-      <app-estado-chip [estado]="obra.estado" />
+      <span class="secundario">{{ obra.ubicacion }} · Inicio {{ fecha(obra.fechaInicio) }}</span>
+      <dl class="asignaciones">
+        <div>
+          <dt>Residente</dt>
+          <dd>{{ obra.residente?.nombre ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Maestro de obra</dt>
+          <dd>{{ obra.maestro?.nombre ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Almacenero</dt>
+          <dd>{{ obra.almacenero?.nombre ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ obra.cliente?.nombre ?? '—' }}</dd>
+        </div>
+      </dl>
     </header>
 
     @if (esperando(obra)) {
@@ -37,9 +60,41 @@
     }
 
     <div class="tarjetas">
+      <section class="tarjeta indicadores" aria-label="Avance y plazo">
+        <h2>Avance frente al plazo</h2>
+        <div class="indicador">
+          <span>Avance de la obra</span>
+          <strong class="sv-numero">{{ porcentaje(obra.avancePct) }}</strong>
+        </div>
+        <div
+          class="barra"
+          role="progressbar"
+          aria-label="Avance de la obra"
+          [attr.aria-valuenow]="obra.avancePct"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span [style.width.%]="ancho(obra.avancePct)"></span>
+        </div>
+        <div class="indicador">
+          <span>Plazo transcurrido</span>
+          <strong class="sv-numero">{{ porcentaje(obra.plazoPct) }}</strong>
+        </div>
+        <div
+          class="barra barra-plazo"
+          role="progressbar"
+          aria-label="Plazo transcurrido"
+          [attr.aria-valuenow]="obra.plazoPct"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <span [style.width.%]="ancho(obra.plazoPct)"></span>
+        </div>
+      </section>
+
       <section class="tarjeta">
         <h2>Contrato</h2>
-        <dl>
+        <dl class="datos">
           <dt>Monto</dt>
           <dd class="sv-numero">{{ monto(obra.contrato.monto) }}</dd>
           <dt>Plazo</dt>
@@ -48,28 +103,30 @@
           <dd>{{ porcentaje(obra.contrato.anticipoPct) }}</dd>
           <dt>Retención</dt>
           <dd>{{ porcentaje(obra.contrato.retencionPct) }}</dd>
+          @if (veFinanzas() && estadoFinanzas() === 'cargando') {
+            <dt>Saldo disponible</dt>
+            <dd class="secundario">Cargando…</dd>
+          } @else if (veFinanzas() && estadoFinanzas() === 'listo' && finanzas(); as finanzas) {
+            <dt>Saldo disponible</dt>
+            <dd class="sv-numero">{{ monto(finanzas.saldoDisponible) }}</dd>
+            <dt>Total cobrado</dt>
+            <dd class="sv-numero">{{ monto(finanzas.totalCobrado) }}</dd>
+          }
         </dl>
-      </section>
-      <section class="tarjeta">
-        <h2>Asignaciones</h2>
-        <dl>
-          <dt>Residente</dt>
-          <dd>{{ obra.residente?.nombre ?? '—' }}</dd>
-          <dt>Maestro de obra</dt>
-          <dd>{{ obra.maestro?.nombre ?? '—' }}</dd>
-          <dt>Almacenero</dt>
-          <dd>{{ obra.almacenero?.nombre ?? '—' }}</dd>
-          <dt>Cliente</dt>
-          <dd>{{ obra.cliente?.nombre ?? '—' }}</dd>
-        </dl>
+        @if (veFinanzas() && estadoFinanzas() === 'error') {
+          <div class="no-disponible" role="alert">
+            <span>Saldo y total cobrado: No disponible por el momento.</span>
+            <button mat-button type="button" (click)="cargarFinanzas()">Reintentar</button>
+          </div>
+        }
       </section>
     </div>
 
     <section class="tarjeta">
-      <h2>Presupuesto por partidas</h2>
+      <h2>Partidas</h2>
       <div class="tabla">
         <table mat-table [dataSource]="obra.partidas">
-          <ng-container matColumnDef="codigo">
+          <ng-container matColumnDef="codigo" sticky>
             <th mat-header-cell *matHeaderCellDef>Código</th>
             <td mat-cell *matCellDef="let partida">{{ partida.codigo }}</td>
           </ng-container>
@@ -77,24 +134,60 @@
             <th mat-header-cell *matHeaderCellDef>Partida</th>
             <td mat-cell *matCellDef="let partida">{{ partida.nombre }}</td>
           </ng-container>
+          <ng-container matColumnDef="unidad">
+            <th mat-header-cell *matHeaderCellDef>Unidad</th>
+            <td mat-cell *matCellDef="let partida">{{ partida.unidad }}</td>
+          </ng-container>
           <ng-container matColumnDef="cantidadContratada">
-            <th mat-header-cell *matHeaderCellDef class="numero">Cantidad</th>
+            <th mat-header-cell *matHeaderCellDef class="numero">Contratada</th>
             <td mat-cell *matCellDef="let partida" class="numero sv-numero">
-              {{ cantidad(partida.cantidadContratada, partida.unidad) }}
+              {{ numero(partida.cantidadContratada) }}
             </td>
+          </ng-container>
+          <ng-container matColumnDef="ejecutadaAcumulada">
+            <th mat-header-cell *matHeaderCellDef class="numero">Ejecutada acumulada</th>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">
+              {{ numero(partida.ejecutadaAcumulada) }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="avancePct">
+            <th mat-header-cell *matHeaderCellDef class="numero">Avance</th>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">{{ porcentaje(partida.avancePct) }}</td>
           </ng-container>
           <ng-container matColumnDef="precioUnitario">
             <th mat-header-cell *matHeaderCellDef class="numero">P. unit.</th>
             <td mat-cell *matCellDef="let partida" class="numero sv-numero">{{ monto(partida.precioUnitario) }}</td>
-          </ng-container>
-          <ng-container matColumnDef="meses">
-            <th mat-header-cell *matHeaderCellDef>Meses</th>
-            <td mat-cell *matCellDef="let partida">{{ partida.meses ?? '' }}</td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
           <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
         </table>
       </div>
     </section>
+
+    <!-- Cada pestaña se crea al abrirla (matTabContent): pide sus datos y maneja su propio error (criterio 4) -->
+    <mat-tab-group class="pestanas" mat-stretch-tabs="false" mat-align-tabs="start">
+      <mat-tab label="Material">
+        <ng-template matTabContent>
+          <app-pestana-material [obraId]="obra.id" [fechaInicio]="obra.fechaInicio" />
+        </ng-template>
+      </mat-tab>
+      <mat-tab label="Fotos">
+        <ng-template matTabContent>
+          <app-pestana-fotos [obraId]="obra.id" [partidas]="obra.partidas" />
+        </ng-template>
+      </mat-tab>
+      <mat-tab label="Planillas">
+        <ng-template matTabContent>
+          <app-pestana-planillas [obraId]="obra.id" />
+        </ng-template>
+      </mat-tab>
+      @if (veFinanzas()) {
+        <mat-tab label="Cobros">
+          <ng-template matTabContent>
+            <app-pestana-cobros [obraId]="obra.id" />
+          </ng-template>
+        </mat-tab>
+      }
+    </mat-tab-group>
   }
 </section>

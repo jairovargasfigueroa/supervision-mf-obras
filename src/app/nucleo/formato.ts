@@ -36,7 +36,12 @@ export function formatearImporte(monto: number): string {
 
 /** `120,5 m²` (hasta 3 decimales). */
 export function formatearCantidad(cantidad: number, unidad: string): string {
-  return `${cantidades.format(cantidad)} ${unidad}`;
+  return `${formatearNumero(cantidad)} ${unidad}`;
+}
+
+/** `1.234,568` (hasta 3 decimales, sin unidad: para tablas que muestran la unidad en su propia columna). */
+export function formatearNumero(cantidad: number): string {
+  return cantidades.format(cantidad);
 }
 
 /** `32,5 %` */
@@ -51,6 +56,15 @@ export function formatearFecha(fecha: string): string {
     return `${dia}/${mes}/${anio}`;
   }
   return fechas.format(new Date(fecha));
+}
+
+const meses = new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC', month: 'long' });
+
+/** `Noviembre 2026` para el periodo `2026-11`. */
+export function formatearPeriodo(periodo: string): string {
+  const [anio, mes] = periodo.split('-').map(Number);
+  const nombre = meses.format(new Date(Date.UTC(anio, mes - 1, 1)));
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`;
 }
 
 /** `15/11/2026 14:30` en hora de La Paz. */

@@ -1,0 +1,44 @@
+@if (estado() === 'cargando') {
+  <p class="cargando">Cargando fotos…</p>
+} @else if (estado() === 'error') {
+  <app-estado-error (reintentar)="cargar()" />
+} @else if (grupos().length === 0) {
+  <app-estado-vacio texto="Aún no hay fotos de avance." icono="photo_library" />
+} @else {
+  @for (grupo of grupos(); track grupo.partidaId) {
+    <section class="grupo">
+      <h3>
+        {{ grupo.titulo }} <span class="secundario">· {{ grupo.fotos.length }}</span>
+      </h3>
+      <ul class="galeria">
+        @for (foto of grupo.fotos; track foto.id) {
+          <li>
+            <figure>
+              <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
+                <img
+                  [src]="foto.urlDescarga"
+                  loading="lazy"
+                  [alt]="'Foto de ' + grupo.titulo + ' del ' + fechaHora(foto.registradoEn)"
+                />
+              </a>
+              <figcaption>
+                <span class="sv-numero">{{ fechaHora(foto.registradoEn) }}</span>
+                <span class="secundario">{{ foto.registradoPor?.nombre ?? '—' }}</span>
+              </figcaption>
+            </figure>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+  @if (hayMas()) {
+    <div class="mas">
+      @if (errorMas()) {
+        <span role="alert">No disponible por el momento.</span>
+      }
+      <button mat-stroked-button type="button" [disabled]="cargandoMas()" (click)="cargarMas()">
+        {{ errorMas() ? 'Reintentar' : 'Cargar más fotos' }}
+      </button>
+    </div>
+  }
+}

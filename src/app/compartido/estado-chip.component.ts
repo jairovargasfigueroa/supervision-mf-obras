@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatChipsModule } from '@angular/material/chips';
-import type { EstadoObra } from '../obras/obras.graphql';
+import type { EstadoCobro, EstadoObra, EstadoPlanilla } from '../obras/obras.graphql';
 
 /** Etiqueta de cada estado de obra. SIN_CONTRATO se muestra «Registrando contrato» (002, criterio 7). */
 export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
@@ -10,8 +10,43 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
 };
 
 /**
- * Chip del estado de la obra (docs/diseno-visual.md, «Estados del dominio → color»): fondo suave y texto del color
- * fuerte. SIN_CONTRATO: primario-suave con texto secundario; EN_EJECUCION: primario.
+ * Estados que se muestran como chip: de obra, de planilla y de cobro. EN_RIESGO es la etiqueta «En riesgo» de la
+ * obra (006, 009) y EXCEDIDO la del consumo excedido (006, pestaña «Material»).
+ */
+export type EstadoMostrable = EstadoObra | EstadoPlanilla | EstadoCobro | 'EN_RIESGO' | 'EXCEDIDO';
+
+const ETIQUETAS: Record<EstadoMostrable, string> = {
+  ...ETIQUETA_ESTADO_OBRA,
+  BORRADOR: 'Borrador',
+  PRESENTADA: 'Presentada',
+  APROBANDO: 'En aprobación',
+  APROBADA: 'Aprobada',
+  OBSERVADA: 'Observada',
+  PENDIENTE: 'Pendiente',
+  VENCIDO: 'Vencido',
+  EN_RIESGO: 'En riesgo',
+  EXCEDIDO: 'Excedido',
+};
+
+/** Color de cada estado (docs/diseno-visual.md, «Estados del dominio → color»). */
+const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exito' | 'atencion' | 'error'> = {
+  SIN_CONTRATO: 'neutro',
+  EN_EJECUCION: 'primario',
+  CONCLUIDA: 'apagado',
+  BORRADOR: 'neutro',
+  PRESENTADA: 'atencion',
+  APROBANDO: 'atencion',
+  APROBADA: 'exito',
+  OBSERVADA: 'error',
+  PENDIENTE: 'exito',
+  VENCIDO: 'error',
+  EN_RIESGO: 'atencion',
+  EXCEDIDO: 'error',
+};
+
+/**
+ * Chip de un estado del dominio (docs/diseno-visual.md, «Estados del dominio → color»): fondo suave y texto del
+ * color fuerte. SIN_CONTRATO: primario-suave con texto secundario; EN_EJECUCION: primario; «En riesgo»: atención.
  */
 @Component({
   selector: 'app-estado-chip',
@@ -25,16 +60,28 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
       border-radius: 999px;
       pointer-events: none;
     }
-    .en-ejecucion {
+    .primario {
       --mat-chip-label-text-color: var(--sv-primario);
     }
-    .concluida {
+    .apagado {
       --mat-chip-elevated-container-color: var(--sv-fondo);
+    }
+    .exito {
+      --mat-chip-elevated-container-color: var(--sv-exito-suave);
+      --mat-chip-label-text-color: var(--sv-exito);
+    }
+    .atencion {
+      --mat-chip-elevated-container-color: var(--sv-atencion-suave);
+      --mat-chip-label-text-color: var(--sv-atencion);
+    }
+    .error {
+      --mat-chip-elevated-container-color: var(--sv-error-suave);
+      --mat-chip-label-text-color: var(--sv-error);
     }
   `,
 })
 export class EstadoChipComponent {
-  readonly estado = input.required<EstadoObra>();
-  protected readonly etiqueta = computed(() => ETIQUETA_ESTADO_OBRA[this.estado()]);
-  protected readonly clase = computed(() => this.estado().toLowerCase().replace('_', '-'));
+  readonly estado = input.required<EstadoMostrable>();
+  protected readonly etiqueta = computed(() => ETIQUETAS[this.estado()]);
+  protected readonly clase = computed(() => COLORES[this.estado()]);
 }

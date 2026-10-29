@@ -3,6 +3,8 @@ import {
   formatearFecha,
   formatearFechaHora,
   formatearMonto,
+  formatearNumero,
+  formatearPeriodo,
   formatearPorcentaje,
 } from './formato';
 
@@ -18,6 +20,11 @@ describe('formato', () => {
     expect(formatearCantidad(1234.5678, 'kg')).toBe('1.234,568 kg');
   });
 
+  it('formatea números sin unidad con hasta 3 decimales', () => {
+    expect(formatearNumero(1234.5678)).toBe('1.234,568');
+    expect(formatearNumero(850)).toBe('850');
+  });
+
   it('formatea porcentajes', () => {
     expect(formatearPorcentaje(32.5)).toBe('32,5 %');
     expect(formatearPorcentaje(100)).toBe('100 %');
@@ -25,6 +32,11 @@ describe('formato', () => {
 
   it('formatea fechas sin hora sin cambiar el día', () => {
     expect(formatearFecha('2026-11-15')).toBe('15/11/2026');
+  });
+
+  it('formatea periodos mensuales con el nombre del mes', () => {
+    expect(formatearPeriodo('2026-11')).toBe('Noviembre 2026');
+    expect(formatearPeriodo('2027-01')).toBe('Enero 2027');
   });
 
   it('formatea instantes en hora de La Paz (UTC−4)', () => {

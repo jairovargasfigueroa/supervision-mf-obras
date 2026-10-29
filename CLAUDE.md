@@ -4,7 +4,7 @@ Microfrontend del ERP para obras: registrar obra, consultar obra (avance, plazo,
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** proyecto generado con Native Federation configurado, sin pantallas. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1. Expone sus rutas (`./Routes`) al shell, lee la sesión de `window.plataforma` y tiene tema, formato y estados vacío y error. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
@@ -24,17 +24,12 @@ npm run build        # genera dist/mf-obras/browser/remoteEntry.json
 
 ## Native Federation
 
-- `federation.config.mjs`: `exposes` define lo que carga el shell (hoy `./Component` → `src/app/app.ts`; se ajusta al definir las rutas).
+- `federation.config.mjs`: expone `./Routes` → `src/app/app.routes.ts`; el shell las monta bajo `/obras`.
 - Las entradas de `@angular/platform-browser/animations` están en `skip` porque no usamos `@angular/animations`.
 
-## Estructura prevista
+## Estructura
 
-```
-src/app/
-  obras/          lista, registro y detalle de obra
-  planillas/      elaboración, presentación y corrección
-  shared/         componentes comunes
-```
+Ver `docs/estructura.md` (`nucleo/`, `obras/`, `planillas/`, `compartido/`).
 
 ## Reglas del proyecto
 

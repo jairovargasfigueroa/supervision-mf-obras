@@ -17,7 +17,7 @@ src/
   main.ts / bootstrap.ts
   styles.scss
   app/
-    app.routes.ts                    # rutas expuestas al shell: '', ':id', 'nueva', ':id/planillas/nueva', 'planillas/:id'
+    app.routes.ts                    # rutas expuestas al shell: '', ':id', 'nueva', ':id/planillas/nueva', 'planillas/:id' (dentro del ERP, bajo /obras: /obras/{id}/planillas/nueva y /obras/planillas/{id})
     app.config.ts                    # Apollo con el token de window.plataforma.sesion
     nucleo/
       sesion.service.ts              # lee window.plataforma.sesion (signals)
@@ -32,9 +32,10 @@ src/
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/
-      nueva/        planilla-nueva.component.ts
-      editor/       planilla-editor.component.ts, totales.ts (cálculo puro, solo ayuda visual)
+      nueva/        planilla-nueva.component.ts (+ .html; esResidenteAsignado, que usa también el detalle)
+      editor/       planilla-editor.component.ts (+ .html, .scss), totales.ts (cálculo puro, solo ayuda visual)
       planillas.graphql.ts, planillas.service.ts
+      planillas.scss                 # estilos comunes de nueva y editor
     compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```

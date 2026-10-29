@@ -31,3 +31,8 @@ export function periodosDesde(fechaInicio: string, hasta: string): string[] {
   }
   return periodos;
 }
+
+/** Mes en La Paz (`AAAA-MM`) de un instante ISO: una foto de las 23:30 del 31 en La Paz es de ese mes, no del siguiente. */
+export function periodoDe(instante: string): string {
+  return periodoActual(new Date(instante));
+}

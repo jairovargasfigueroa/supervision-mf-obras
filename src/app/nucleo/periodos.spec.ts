@@ -1,4 +1,4 @@
-import { periodoActual, periodosDesde } from './periodos';
+import { periodoActual, periodoDe, periodosDesde } from './periodos';
 
 describe('periodos', () => {
   it('el mes actual se cuenta en hora de La Paz (UTC−4)', () => {
@@ -14,5 +14,10 @@ describe('periodos', () => {
 
   it('una obra que todavía no empieza solo ofrece el mes actual', () => {
     expect(periodosDesde('2026-12-01', '2026-10')).toEqual(['2026-10']);
+  });
+
+  it('el periodo de un instante se cuenta en hora de La Paz', () => {
+    expect(periodoDe('2026-12-01T03:30:00Z')).toBe('2026-11');
+    expect(periodoDe('2026-12-01T04:00:00Z')).toBe('2026-12');
   });
 });

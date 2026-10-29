@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
+import { provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
 import type { Cobro, PlanillaResumen } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
@@ -15,13 +16,14 @@ const reintentar = (elemento: HTMLElement) =>
   elemento.querySelector('app-estado-error button')!.dispatchEvent(new Event('click'));
 
 describe('PestanaPlanillasComponent', () => {
-  function montar(planillas: () => Observable<PlanillaResumen[]>) {
+  function montar(planillas: () => Observable<PlanillaResumen[]>, puedeCrear = false) {
     TestBed.configureTestingModule({
       imports: [PestanaPlanillasComponent],
-      providers: [{ provide: ObrasService, useValue: { planillas } }],
+      providers: [provideRouter([]), { provide: ObrasService, useValue: { planillas } }],
     });
     const fixture = TestBed.createComponent(PestanaPlanillasComponent);
     fixture.componentRef.setInput('obraId', 'b1');
+    fixture.componentRef.setInput('puedeCrear', puedeCrear);
     fixture.detectChanges();
     return { fixture, elemento: fixture.nativeElement as HTMLElement };
   }
@@ -37,6 +39,15 @@ describe('PestanaPlanillasComponent', () => {
       ['2', 'Diciembre 2026', 'Presentada', 'Bs 120.000,00'],
       ['1', 'Noviembre 2026', 'Aprobada', 'Bs 84.630,50'],
     ]);
+    // 007: el periodo abre la planilla (en el ERP, /obras/planillas/{id})
+    expect(elemento.querySelector('a[href="/planillas/pl2"]')?.textContent).toBe('Diciembre 2026');
+  });
+
+  it('«Nueva planilla» solo para el residente asignado (007, criterios 1 y 10)', () => {
+    const conBoton = montar(() => of([]), true).elemento;
+    expect(conBoton.querySelector('a[href="/planillas/nueva"]')?.textContent).toContain('Nueva planilla');
+    TestBed.resetTestingModule();
+    expect(montar(() => of([])).elemento.textContent).not.toContain('Nueva planilla');
   });
 
   it('sin planillas muestra el estado vacío', () => {

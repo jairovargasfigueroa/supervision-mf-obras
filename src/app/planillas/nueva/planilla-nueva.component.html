@@ -1,0 +1,46 @@
+<section class="pagina">
+  <nav class="migas">
+    <a routerLink="." [relativeTo]="base">Obras</a> /
+    @if (obra(); as obra) {
+      <a [routerLink]="[obra.id]" [relativeTo]="base">{{ obra.nombre }}</a> /
+    }
+    Nueva planilla
+  </nav>
+  <h1>Nueva planilla</h1>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (estado() === 'cargando') {
+    <p class="cargando">Cargando obra…</p>
+  } @else if (estado() === 'no-encontrada') {
+    <app-estado-vacio texto="Obra no encontrada" icono="search_off" />
+  } @else if (estado() === 'error') {
+    <app-estado-error [texto]="mensajeCarga()" (reintentar)="cargar()" />
+  } @else if (!puedeCrear()) {
+    <app-estado-vacio texto="No tienes permiso para hacer esta acción." icono="lock" />
+  } @else if (obra()?.estado !== 'EN_EJECUCION') {
+    <app-estado-vacio texto="La obra no está en ejecución" icono="pending" />
+  } @else {
+    <section class="tarjeta formulario">
+      <mat-form-field>
+        <mat-label>Periodo</mat-label>
+        <mat-select [formControl]="periodo">
+          @for (periodo of periodos(); track periodo) {
+            <mat-option [value]="periodo">{{ nombrePeriodo(periodo) }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (errorCrear()) {
+        <div class="aviso aviso-error" role="alert">{{ errorCrear() }}</div>
+      }
+
+      <div class="acciones">
+        <a mat-button [routerLink]="[obraId()]" [relativeTo]="base">Cancelar</a>
+        <button mat-flat-button type="button" [disabled]="creando()" (click)="crear()">
+          {{ creando() ? 'Creando…' : 'Crear planilla' }}
+        </button>
+      </div>
+    </section>
+  }
+</section>

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, type OnIn
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { formatearFecha, formatearPorcentaje } from '../../nucleo/formato';
@@ -15,7 +16,7 @@ import { ObrasService } from '../obras.service';
  */
 @Component({
   selector: 'app-obras-lista',
-  imports: [RouterLink, MatButtonModule, MatIconModule, EstadoVacioComponent, EstadoErrorComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, EstadoChipComponent, EstadoVacioComponent, EstadoErrorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="pagina">
@@ -45,9 +46,14 @@ import { ObrasService } from '../obras.service';
         <ul class="obras">
           @for (obra of obras(); track obra.id) {
             <li>
-              <strong>{{ obra.nombre }}</strong>
-              <span>{{ obra.ubicacion }}</span>
-              <span>Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }}</span>
+              <a class="obra" [routerLink]="obra.id">
+                <span class="datos">
+                  <strong>{{ obra.nombre }}</strong>
+                  <span>{{ obra.ubicacion }}</span>
+                  <span>Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }}</span>
+                </span>
+                <app-estado-chip [estado]="obra.estado" />
+              </a>
             </li>
           }
         </ul>
@@ -82,14 +88,25 @@ import { ObrasService } from '../obras.service';
       display: grid;
       gap: 8px;
     }
-    .obras li {
+    .obra {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: inherit;
+      text-decoration: none;
       padding: 12px 16px;
       background: var(--sv-superficie);
       border: 1px solid var(--sv-borde);
       border-radius: var(--sv-radio-tarjeta);
+    }
+    .obra:hover {
+      border-color: var(--sv-primario);
+    }
+    .datos {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     @media (max-width: 599px) {
       .pagina {

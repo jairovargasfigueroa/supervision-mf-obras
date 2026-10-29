@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { provideGraphql } from './nucleo/graphql.config';
+import { ObraDetalleComponent } from './obras/detalle/obra-detalle.component';
 import { ObrasListaComponent } from './obras/lista/obras-lista.component';
 import { ObraNuevaComponent } from './obras/nueva/obra-nueva.component';
 import { ObrasService } from './obras/obras.service';
@@ -14,6 +15,8 @@ export const routes: Routes = [
       { path: '', component: ObrasListaComponent },
       // 002: solo admin; la pantalla muestra «No tienes permiso…» a los demás roles
       { path: 'nueva', component: ObraNuevaComponent, title: 'Nueva obra' },
+      // Detalle básico (002); la 006 agrega las pestañas
+      { path: ':id', component: ObraDetalleComponent },
     ],
   },
 ];

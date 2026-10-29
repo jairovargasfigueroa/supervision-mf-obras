@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { CombinedGraphQLErrors } from '@apollo/client/errors';
+import { Router, provideRouter } from '@angular/router';
+import type { FormObra } from './formulario';
 import { of, throwError } from 'rxjs';
 import type { Rol, Usuario } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
@@ -93,6 +95,85 @@ describe('ObraNuevaComponent', () => {
     fixture.detectChanges();
     expect(componente.formulario.hasError('presupuesto')).toBe(false);
     expect(elemento.textContent).not.toContain('no coincide con el monto del contrato');
+  });
+
+  describe('guardar (criterios 6 y 7)', () => {
+    function completar(componente: { formulario: FormObra }, monto = 357425): void {
+      const { datos, contrato, partidas } = componente.formulario.controls;
+      datos.setValue({
+        nombre: ' Edificio Las Palmas ',
+        ubicacion: 'Santa Cruz',
+        fechaInicio: '2026-11-01',
+        residenteId: 'r1',
+        maestroId: 'm1',
+        almaceneroId: 'a1',
+        clienteId: 'c1',
+      });
+      contrato.setValue({ monto, plazoDias: 300, anticipoPct: 10, retencionPct: 7, firmadoEn: '2026-10-20' });
+      partidas.at(0).setValue({
+        codigo: 'P-01',
+        nombre: 'Losa',
+        unidad: 'm2',
+        cantidadContratada: 850,
+        precioUnitario: 420.5,
+        meses: '',
+      });
+    }
+    const pulsarGuardar = (elemento: HTMLElement) =>
+      [...elemento.querySelectorAll('button')].find((b) => b.textContent?.includes('Guardar obra'))!.click();
+
+    it('envía registrarObra y navega al detalle de la obra nueva', () => {
+      sesionCon(['admin']);
+      const registrar = vi.fn(() => of({ id: 'b9', estado: 'SIN_CONTRATO' as const }));
+      const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), registrar });
+      const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      completar(fixture.componentInstance as never);
+      fixture.detectChanges();
+
+      pulsarGuardar(elemento);
+      expect(registrar).toHaveBeenCalledWith({
+        nombre: 'Edificio Las Palmas',
+        ubicacion: 'Santa Cruz',
+        fechaInicio: '2026-11-01',
+        asignaciones: { residenteId: 'r1', maestroId: 'm1', almaceneroId: 'a1', clienteId: 'c1' },
+        contrato: { monto: 357425, plazoDias: 300, anticipoPct: 10, retencionPct: 7, firmadoEn: '2026-10-20' },
+        partidas: [{ codigo: 'P-01', nombre: 'Losa', unidad: 'm2', cantidadContratada: 850, precioUnitario: 420.5 }],
+      });
+      expect(navegar.mock.calls[0][0]).toEqual(['..', 'b9']);
+    });
+
+    it('no envía si el presupuesto no coincide con el monto', () => {
+      sesionCon(['admin']);
+      const registrar = vi.fn();
+      const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), registrar });
+      completar(fixture.componentInstance as never, 400000);
+      fixture.detectChanges();
+      pulsarGuardar(elemento);
+      fixture.detectChanges();
+      expect(registrar).not.toHaveBeenCalled();
+      expect(elemento.textContent).toContain(
+        'El presupuesto (Bs 357.425,00) no coincide con el monto del contrato (Bs 400.000,00)',
+      );
+    });
+
+    it('muestra el mensaje del código que devuelve el gateway y vuelve al paso del contrato', () => {
+      sesionCon(['admin']);
+      const error = new CombinedGraphQLErrors({
+        data: null,
+        errors: [{ message: 'x', extensions: { codigo: 'CONTRATO_INVALIDO', servicio: 'obras', estado: 422 } }],
+      });
+      const { fixture, elemento } = montar({
+        usuarios: (rol: Rol) => of(USUARIOS[rol]),
+        registrar: () => throwError(() => error),
+      });
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      completar(fixture.componentInstance as never);
+      fixture.detectChanges();
+      pulsarGuardar(elemento);
+      fixture.detectChanges();
+      expect(elemento.textContent).toContain('Los datos del contrato no son válidos');
+      expect(elemento.querySelector('.mat-step-header[aria-selected="true"]')?.textContent).toContain('Contrato');
+    });
   });
 
   it('si Keycloak no responde ofrece reintentar la carga de usuarios', () => {

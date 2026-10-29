@@ -4,7 +4,7 @@ Microfrontend del ERP para obras: registrar obra, consultar obra (avance, plazo,
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** fase 1. Expone sus rutas (`./Routes`) al shell, lee la sesión de `window.plataforma` y tiene tema, formato y estados vacío y error. La lista de obras consulta `obras` al gateway (esqueleto que camina, 1.10). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1. Expone sus rutas (`./Routes`) al shell, lee la sesión de `window.plataforma` y tiene tema, formato y estados vacío y error. La lista de obras consulta `obras` al gateway (esqueleto que camina, 1.10). 002: asistente «Nueva obra» (`/obras/nueva`, solo `admin`) con `usuarios(rol)` y `registrarObra`, y detalle básico (`/obras/{id}`) que espera el contrato consultando `obra(id)` cada 2 s (máx. 30 s). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 

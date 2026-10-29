@@ -1,0 +1,100 @@
+<section class="pagina">
+  <nav class="migas"><a routerLink="..">Obras</a> / Detalle</nav>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (estado() === 'cargando') {
+    <p class="cargando">Cargando obra…</p>
+  } @else if (estado() === 'no-encontrada') {
+    <app-estado-vacio texto="Obra no encontrada" icono="search_off" />
+    <a mat-button routerLink="..">Volver a la lista de obras</a>
+  } @else if (estado() === 'error') {
+    <app-estado-error [texto]="mensajeError()" (reintentar)="cargar()" />
+  } @else if (obra(); as obra) {
+    <header class="titulo">
+      <div>
+        <h1>{{ obra.nombre }}</h1>
+        <span class="secundario">{{ obra.ubicacion }} · Inicio {{ fecha(obra.fechaInicio) }}</span>
+      </div>
+      <app-estado-chip [estado]="obra.estado" />
+    </header>
+
+    @if (esperando(obra)) {
+      <div class="aviso aviso-info" role="status">
+        @if (!esperaAgotada()) {
+          <mat-spinner diameter="20" />
+        }
+        <span>Registrando contrato…</span>
+        @if (esperaAgotada()) {
+          <button mat-button type="button" (click)="cargar()">Actualizar</button>
+        }
+      </div>
+    } @else if (obra.estado === 'SIN_CONTRATO' && obra.motivoRechazoContrato) {
+      <div class="aviso aviso-error" role="alert">
+        <strong>Contrato rechazado</strong>
+        <span>{{ obra.motivoRechazoContrato }}</span>
+      </div>
+    }
+
+    <div class="tarjetas">
+      <section class="tarjeta">
+        <h2>Contrato</h2>
+        <dl>
+          <dt>Monto</dt>
+          <dd class="sv-numero">{{ monto(obra.contrato.monto) }}</dd>
+          <dt>Plazo</dt>
+          <dd>{{ obra.contrato.plazoDias }} días</dd>
+          <dt>Anticipo</dt>
+          <dd>{{ porcentaje(obra.contrato.anticipoPct) }}</dd>
+          <dt>Retención</dt>
+          <dd>{{ porcentaje(obra.contrato.retencionPct) }}</dd>
+        </dl>
+      </section>
+      <section class="tarjeta">
+        <h2>Asignaciones</h2>
+        <dl>
+          <dt>Residente</dt>
+          <dd>{{ obra.residente?.nombre ?? '—' }}</dd>
+          <dt>Maestro de obra</dt>
+          <dd>{{ obra.maestro?.nombre ?? '—' }}</dd>
+          <dt>Almacenero</dt>
+          <dd>{{ obra.almacenero?.nombre ?? '—' }}</dd>
+          <dt>Cliente</dt>
+          <dd>{{ obra.cliente?.nombre ?? '—' }}</dd>
+        </dl>
+      </section>
+    </div>
+
+    <section class="tarjeta">
+      <h2>Presupuesto por partidas</h2>
+      <div class="tabla">
+        <table mat-table [dataSource]="obra.partidas">
+          <ng-container matColumnDef="codigo">
+            <th mat-header-cell *matHeaderCellDef>Código</th>
+            <td mat-cell *matCellDef="let partida">{{ partida.codigo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef>Partida</th>
+            <td mat-cell *matCellDef="let partida">{{ partida.nombre }}</td>
+          </ng-container>
+          <ng-container matColumnDef="cantidadContratada">
+            <th mat-header-cell *matHeaderCellDef class="numero">Cantidad</th>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">
+              {{ cantidad(partida.cantidadContratada, partida.unidad) }}
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="precioUnitario">
+            <th mat-header-cell *matHeaderCellDef class="numero">P. unit.</th>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">{{ monto(partida.precioUnitario) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="meses">
+            <th mat-header-cell *matHeaderCellDef>Meses</th>
+            <td mat-cell *matCellDef="let partida">{{ partida.meses ?? '' }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+          <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+        </table>
+      </div>
+    </section>
+  }
+</section>

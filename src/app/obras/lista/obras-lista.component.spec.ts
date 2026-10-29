@@ -56,6 +56,22 @@ describe('ObrasListaComponent', () => {
       const elemento = montar(() => of([obra]));
       expect(elemento.textContent).toContain('Edificio Las Palmas');
       expect(elemento.textContent).toContain('Inicio 01/11/2026 · Avance 32,5 %');
+      expect(elemento.textContent).toContain('En ejecución');
+      expect(elemento.querySelector('a.obra')?.getAttribute('href')).toBe('/b1');
+    });
+
+    it('una obra SIN_CONTRATO lleva la etiqueta «Registrando contrato» (002, criterio 7)', () => {
+      const obra: ObraResumen = {
+        id: 'b2',
+        nombre: 'Posta de Salud',
+        ubicacion: 'Montero',
+        estado: 'SIN_CONTRATO',
+        fechaInicio: '2026-11-01',
+        avancePct: 0,
+        plazoPct: 0,
+        enRiesgo: false,
+      };
+      expect(montar(() => of([obra])).querySelector('app-estado-chip')?.textContent?.trim()).toBe('Registrando contrato');
     });
 
     describe('botón «Nueva obra» (002, criterio 10)', () => {

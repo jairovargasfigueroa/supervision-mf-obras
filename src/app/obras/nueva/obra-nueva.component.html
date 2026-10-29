@@ -7,6 +7,18 @@
   } @else if (!esAdmin()) {
     <app-estado-vacio texto="No tienes permiso para hacer esta acción." icono="lock" />
   } @else {
+    @if (errorGuardar(); as error) {
+      <div class="aviso aviso-error" role="alert">
+        {{ error.mensaje }}
+        @if (error.errores.length) {
+          <ul>
+            @for (errorCampo of error.errores; track $index) {
+              <li>{{ errorCampo.campo }}: {{ errorCampo.mensaje }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
     <mat-stepper class="tarjeta" linear #stepper>
       <mat-step [stepControl]="formulario.controls.datos" label="Datos y asignaciones">
         <app-paso-datos
@@ -35,7 +47,10 @@
           <div class="aviso aviso-error" role="alert">{{ mensajePresupuesto() }}</div>
         }
         <div class="acciones">
-          <button mat-button type="button" matStepperPrevious>Atrás</button>
+          <button mat-button type="button" matStepperPrevious [disabled]="guardando()">Atrás</button>
+          <button mat-flat-button type="button" (click)="guardar()" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar obra' }}
+          </button>
         </div>
       </mat-step>
     </mat-stepper>

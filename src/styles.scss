@@ -1,1 +1,24 @@
-/* You can add global styles to this file, and also import other style files */
+@use './styles/tema';
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sv-fondo);
+  color: var(--sv-texto);
+  font: 400 14px / 1.45 Inter, system-ui, sans-serif;
+}
+
+// Números en tablas y montos (docs/diseno-visual.md, «Tipografía»)
+.sv-numero {
+  font-family: var(--sv-fuente-numeros);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sv-acento);
+  outline-offset: 2px;
+}

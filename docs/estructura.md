@@ -8,7 +8,7 @@ Angular 22 (standalone, *signals*), `@angular/material` + `@angular/cdk` 22 (com
 
 ## Tema
 
-El shell aplica el tema global. Para desarrollar solo (`npm start` en 4201), `src/styles.scss` importa una copia de `tema.scss` del shell con los mismos valores (primario `#0E4D5C`, acento `#F08A24`; ver `docs/diseno-visual.md` de la carpeta general).
+El shell aplica el tema global. Para desarrollar solo (`npm start` en 4201), `src/styles.scss` importa una copia de `tema.scss` y `_theme-colors.scss` del shell (`src/styles/`) con los mismos valores (primario `#0E4D5C`, acento `#F08A24`; ver `docs/diseno-visual.md` de la carpeta general).
 
 ## Árbol
 

@@ -4,13 +4,13 @@ Microfrontend del ERP para obras: registrar obra, consultar obra (avance, plazo,
 
 Parte de la «Plataforma de supervisión de obras». Si existe `../../CLAUDE.md` (carpeta que agrupa todos los proyectos), léelo primero: tiene las reglas transversales, el plan y los contratos generales.
 
-**Estado:** proyecto generado con Native Federation configurado, sin pantallas. No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
+**Estado:** fase 1. Expone sus rutas (`./Routes`) al shell, lee la sesión de `window.plataforma` y tiene tema, formato y estados vacío y error. La lista de obras consulta `obras` al gateway (esqueleto que camina, 1.10). No implementes una funcionalidad sin su especificación aprobada en `docs/specs/`.
 
 ## Stack
 
 - Node 24 · Angular 22 (standalone, builder esbuild) · SCSS · pruebas con Vitest
 - `@angular-architects/native-federation` 22 como **remoto**; comparte Angular con el shell
-- Previsto: apollo-angular 14 (GraphQL hacia el gateway)
+- apollo-angular 14 + Apollo Client 4 (GraphQL hacia el gateway, con el token del shell); se proveen en las rutas expuestas
 - Puerto: `4201`
 
 ## Comandos
@@ -24,17 +24,12 @@ npm run build        # genera dist/mf-obras/browser/remoteEntry.json
 
 ## Native Federation
 
-- `federation.config.mjs`: `exposes` define lo que carga el shell (hoy `./Component` → `src/app/app.ts`; se ajusta al definir las rutas).
+- `federation.config.mjs`: expone `./Routes` → `src/app/app.routes.ts`; el shell las monta bajo `/obras`.
 - Las entradas de `@angular/platform-browser/animations` están en `skip` porque no usamos `@angular/animations`.
 
-## Estructura prevista
+## Estructura
 
-```
-src/app/
-  obras/          lista, registro y detalle de obra
-  planillas/      elaboración, presentación y corrección
-  shared/         componentes comunes
-```
+Ver `docs/estructura.md` (`nucleo/`, `obras/`, `planillas/`, `compartido/`).
 
 ## Reglas del proyecto
 
@@ -53,4 +48,4 @@ src/app/
 
 Conventional Commits en español e imperativo (`feat(planillas): agrega formulario de planilla`). Sin coautoría ni firmas de la IA.
 
-Trabajo en ramas `feat/NNN-nombre` con *pull request* y revisión; nunca hagas *push* a `main` (está protegida). Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.
+Git Flow: ramas `feat/`, `fix/`, `docs/`… desde `develop`, que entran por *pull request*; nunca hagas *push* a `main` ni a `develop` (están protegidas). El agente crea y fusiona los PR (merge normal, sin squash) hacia `develop` cuando todas las pruebas pasan. Detalle y definición de terminado: `docs/flujo-trabajo.md` del repo `supervision-docs`.

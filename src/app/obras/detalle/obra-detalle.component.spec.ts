@@ -52,10 +52,14 @@ const EN_EJECUCION: Obra = {
 
 const FINANZAS: FinanzasObra = { saldoDisponible: 300000, totalCobrado: 57425, totalReservado: 0 };
 
-function montar(
-  obtener: (id: string) => Observable<Obra | null>,
-  opciones: { roles?: string[]; finanzas?: () => Observable<FinanzasObra | null> } = {},
-) {
+interface Opciones {
+  roles?: string[];
+  finanzas?: () => Observable<FinanzasObra | null>;
+  /** Métodos de las pestañas que reemplazan a los de por defecto. */
+  pestanas?: Record<string, (...args: never[]) => Observable<unknown>>;
+}
+
+function montar(obtener: (id: string) => Observable<Obra | null>, opciones: Opciones = {}) {
   window.plataforma = { configuracion: { gatewayUrl: 'http://localhost:4000/graphql' } };
   if (opciones.roles) {
     window.plataforma.sesion = {
@@ -78,6 +82,7 @@ function montar(
           fotos: () => of({ items: [], total: 0, pagina: 1, tamano: 50 }),
           planillas: () => of([]),
           cobros: () => of([]),
+          ...opciones.pestanas,
         },
       },
     ],
@@ -180,13 +185,75 @@ describe('ObraDetalleComponent', () => {
     expect(elemento.textContent).toContain('Obra no encontrada');
   });
 
-  describe('obra en ejecución (criterio 3)', () => {
-    async function abrir(obra: Obra, opciones: Parameters<typeof montar>[1] = {}) {
-      const montado = montar(() => of(obra), opciones);
-      await vi.advanceTimersByTimeAsync(0);
-      montado.fixture.detectChanges();
-      return montado;
+  async function abrir(obra: Obra, opciones: Opciones = {}) {
+    const montado = montar(() => of(obra), opciones);
+    await vi.advanceTimersByTimeAsync(0);
+    montado.fixture.detectChanges();
+    return montado;
+  }
+
+  describe('pestañas (criterios 3 y 4)', () => {
+    const pestanas = (elemento: HTMLElement) =>
+      [...elemento.querySelectorAll('[role="tab"]')].map((pestana) => pestana.textContent?.trim());
+
+    async function abrirPestana(fixture: { detectChanges(): void }, elemento: HTMLElement, nombre: string) {
+      const pestana = [...elemento.querySelectorAll<HTMLElement>('[role="tab"]')].find(
+        (p) => p.textContent?.trim() === nombre,
+      )!;
+      pestana.click();
+      fixture.detectChanges();
+      await vi.advanceTimersByTimeAsync(600);
+      fixture.detectChanges();
     }
+
+    it.each([['admin'], ['gerente']])('%s ve Material, Fotos, Planillas y Cobros', async (rol) => {
+      const { elemento } = await abrir(EN_EJECUCION, { roles: [rol] });
+      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas', 'Cobros']);
+    });
+
+    it('residente no ve la pestaña Cobros', async () => {
+      const { elemento } = await abrir(EN_EJECUCION, { roles: ['residente'] });
+      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas']);
+    });
+
+    it('cada pestaña pide sus datos al abrirse', async () => {
+      const materialComparado = vi.fn((_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: [] }));
+      const fotos = vi.fn(() => of({ items: [], total: 0, pagina: 1, tamano: 50 }));
+      const cobros = vi.fn(() => of([]));
+      const { fixture, elemento } = await abrir(EN_EJECUCION, {
+        roles: ['admin'],
+        pestanas: { materialComparado, fotos, cobros },
+      });
+      expect(materialComparado).toHaveBeenCalledTimes(1);
+      expect(fotos).not.toHaveBeenCalled();
+      expect(cobros).not.toHaveBeenCalled();
+
+      await abrirPestana(fixture, elemento, 'Fotos');
+      expect(fotos).toHaveBeenCalledExactlyOnceWith('b1', 1);
+      expect(elemento.textContent).toContain('Aún no hay fotos de avance.');
+      expect(cobros).not.toHaveBeenCalled();
+    });
+
+    it('si el servicio de una pestaña no responde, el resto de la pantalla se ve normal (criterio 4)', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const caido = () => throwError(() => new Error('caído'));
+      const { fixture, elemento } = await abrir(EN_EJECUCION, {
+        roles: ['admin'],
+        pestanas: { materialComparado: caido, cobros: caido },
+      });
+      expect(elemento.querySelector('mat-tab-body app-estado-error')?.textContent).toContain(
+        'No disponible por el momento.',
+      );
+      expect(texto(elemento)).toContain('Avance de la obra 20 %');
+      expect(texto(elemento)).toContain('Saldo disponible Bs 300.000,00');
+      expect(elemento.textContent).toContain('Losa');
+
+      await abrirPestana(fixture, elemento, 'Planillas');
+      expect(elemento.textContent).toContain('Aún no hay planillas.');
+    });
+  });
+
+  describe('obra en ejecución (criterio 3)', () => {
 
     it('el encabezado muestra nombre, ubicación, estado, inicio, asignaciones y «En riesgo»', async () => {
       const { elemento } = await abrir(EN_EJECUCION);

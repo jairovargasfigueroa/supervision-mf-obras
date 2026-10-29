@@ -115,3 +115,9 @@ figcaption {
   padding: 8px 10px;
   font-size: 12px;
 }
+
+.observacion {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}

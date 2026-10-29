@@ -322,3 +322,68 @@ describe('PlanillaEditorComponent (fotos, guardar y presentar)', () => {
     expect(entradas()).toEqual([]);
   });
 });
+
+describe('PlanillaEditorComponent (modo lectura)', () => {
+  afterEach(() => delete window.plataforma);
+
+  const sinEdicion = (elemento: HTMLElement) => ({
+    entradas: elemento.querySelectorAll('input[type="number"]').length,
+    botones: [...elemento.querySelectorAll('button')].map((b) => b.textContent?.trim()),
+  });
+
+  for (const estado of ['PRESENTADA', 'APROBANDO', 'APROBADA'] as const) {
+    it(`una planilla ${estado} ya no se edita, ni para el residente asignado (criterio 9)`, () => {
+      const { elemento, totales } = montarEditor({ planilla: { ...CON_CANTIDAD, estado } });
+      expect(sinEdicion(elemento)).toEqual({ entradas: 0, botones: [] });
+      expect(totales()).toEqual(['Bs 50.460,00', 'Bs 5.046,00', 'Bs 3.532,20', 'Bs 41.881,80']);
+    });
+  }
+
+  for (const rol of ['admin', 'gerente']) {
+    it(`${rol} ve el borrador en modo lectura con lo que devolvió Obras (criterio 10)`, () => {
+      const { elemento, filas } = montarEditor({ usuario: { id: 'u9', roles: [rol] }, planilla: CON_CANTIDAD });
+      expect(sinEdicion(elemento)).toEqual({ entradas: 0, botones: [] });
+      const celdas = [...filas()[0].querySelectorAll('td')].map((celda) => celda.textContent?.trim());
+      expect(celdas).toEqual(['P-01', 'Losa', 'm2', '850', '300', '120', '420', '430', 'Bs 50.460,00']);
+    });
+  }
+
+  it('otro residente (no asignado) tampoco la edita (criterio 10)', () => {
+    const { elemento } = montarEditor({ usuario: { id: 'r2', roles: ['residente'] } });
+    expect(sinEdicion(elemento).entradas).toBe(0);
+  });
+
+  it('en lectura la galería muestra solo las fotos adjuntas, sin casillas', () => {
+    const { elemento } = montarEditor({
+      usuario: { id: 'g1', roles: ['gerente'] },
+      planilla: { ...CON_CANTIDAD, estado: 'PRESENTADA', fotoIds: ['f2'] },
+      fotos: () => of([FOTO('f1', '2026-11-20T15:00:00Z'), FOTO('f2', '2026-11-05T15:00:00Z')]),
+    });
+    expect([...elemento.querySelectorAll('.galeria img')].map((img) => img.getAttribute('src'))).toEqual([
+      'https://s3.example/f2.jpg',
+    ]);
+    expect(elemento.querySelector('mat-checkbox')).toBeNull();
+  });
+
+  it('una OBSERVADA muestra la observación y se corrige y vuelve a presentar (criterio 9)', () => {
+    const observada: Planilla = { ...CON_CANTIDAD, estado: 'OBSERVADA', observacion: 'Falta la foto de la losa' };
+    const { elemento, escribir, pulsar, servicio, boton } = montarEditor({
+      planilla: observada,
+      guardar: () => of({ ...observada, version: 3 }),
+      presentar: () => of({ ...observada, estado: 'PRESENTADA', version: 4 }),
+    });
+    expect(elemento.querySelector('.observacion')?.textContent).toContain('Falta la foto de la losa');
+    expect(sinEdicion(elemento).entradas).toBe(2);
+    escribir(0, '100');
+    pulsar('Volver a presentar');
+    expect(servicio.guardar).toHaveBeenCalled();
+    expect(servicio.presentar).toHaveBeenCalledWith('pl1', 3);
+    expect(elemento.querySelector('.observacion')).toBeNull();
+    expect(boton('Volver a presentar')).toBeUndefined();
+  });
+
+  it('una planilla que no existe o no ve muestra el aviso de no encontrada', () => {
+    const { elemento } = montarEditor({ obtener: () => of(null) });
+    expect(elemento.textContent).toContain('No encontramos lo que buscas.');
+  });
+});

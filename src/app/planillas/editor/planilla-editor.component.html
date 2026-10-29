@@ -27,6 +27,14 @@
       <span class="secundario">Periodo {{ nombrePeriodo(planilla.periodo) }}</span>
     </header>
 
+    <!-- Criterio 9: la observación del cliente (o de la saga) se ve para corregir y volver a presentar -->
+    @if (planilla.estado === 'OBSERVADA' && planilla.observacion) {
+      <div class="aviso aviso-error observacion" role="note">
+        <strong>Observación</strong>
+        <span>{{ planilla.observacion }}</span>
+      </div>
+    }
+
     <section class="tarjeta">
       <div class="tabla">
         <table mat-table [dataSource]="planilla.lineas">

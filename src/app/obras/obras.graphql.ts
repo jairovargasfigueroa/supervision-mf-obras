@@ -118,6 +118,8 @@ export interface PlanillaResumen {
   periodo: string;
   estado: EstadoPlanilla;
   neto: number;
+  /** Número del cobro (`COB-AAAA-NNNN`) que Obras guarda al aprobarse la planilla (008); null hasta entonces. */
+  cobroNumero: string | null;
 }
 
 export interface Cobro {
@@ -265,7 +267,7 @@ export const CONSULTA_PLANILLAS = gql<{ obra: { id: string; planillas: PlanillaR
   query PlanillasObra($id: ID!) {
     obra(id: $id) {
       id
-      planillas { id numero periodo estado neto }
+      planillas { id numero periodo estado neto cobroNumero }
     }
   }
 `;

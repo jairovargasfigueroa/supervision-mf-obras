@@ -57,6 +57,7 @@ const PLANILLA: Planilla = {
   anticipoPct: 10,
   retencionPct: 7,
   observacion: null,
+  cobro: null,
   fotoIds: [],
 };
 
@@ -380,6 +381,37 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
     expect(servicio.presentar).toHaveBeenCalledWith('pl1', 3);
     expect(elemento.querySelector('.observacion')).toBeNull();
     expect(boton('Volver a presentar')).toBeUndefined();
+  });
+
+  it('una APROBADA muestra el número de cobro (008, criterio 14)', () => {
+    const { elemento } = montarEditor({
+      planilla: { ...CON_CANTIDAD, estado: 'APROBADA', cobro: { id: 'c1', numero: 'COB-2026-0003' } },
+    });
+    expect(elemento.querySelector('.encabezado .cobro')?.textContent?.trim()).toBe('Cobro COB-2026-0003');
+    expect(elemento.querySelector('.observacion')).toBeNull();
+  });
+
+  it('sin cobro (todavía no aprobada) no muestra número de cobro', () => {
+    const { elemento } = montarEditor({ planilla: { ...CON_CANTIDAD, estado: 'APROBANDO' } });
+    expect(elemento.querySelector('.cobro')).toBeNull();
+  });
+
+  for (const rol of ['admin', 'gerente']) {
+    it(`${rol} ve en lectura el motivo del fallo de la aprobación de una OBSERVADA (008, criterios 6 y 14)`, () => {
+      const { elemento } = montarEditor({
+        usuario: { id: 'u9', roles: [rol] },
+        planilla: { ...CON_CANTIDAD, estado: 'OBSERVADA', observacion: 'Saldo del contrato insuficiente' },
+      });
+      expect(elemento.querySelector('.observacion')?.textContent).toContain('Saldo del contrato insuficiente');
+      expect(sinEdicion(elemento)).toEqual({ entradas: 0, botones: [] });
+    });
+  }
+
+  it('al abrirse vuelve a leer la planilla del gateway para mostrar su estado actual (008)', () => {
+    const { servicio, elemento } = montarEditor({ planilla: { ...CON_CANTIDAD, estado: 'APROBADA' } });
+    expect(servicio.obtener).toHaveBeenCalledTimes(1);
+    expect(servicio.obtener).toHaveBeenCalledWith('pl1');
+    expect(elemento.querySelector('app-estado-chip')?.textContent).toContain('Aprobada');
   });
 
   it('una planilla que no existe o no ve muestra el aviso de no encontrada', () => {

@@ -93,8 +93,8 @@ describe('PlanillaNuevaComponent', () => {
     ];
     const { elemento, pulsarCrear } = montar({
       planillas: [
-        { id: 'pl1', numero: 1, periodo: '2026-08', estado: 'APROBADA', neto: 1 },
-        { id: 'pl2', numero: 2, periodo: '2026-09', estado: 'APROBADA', neto: 1 },
+        { id: 'pl1', numero: 1, periodo: '2026-08', estado: 'APROBADA', neto: 1, cobroNumero: 'COB-2026-0001' },
+        { id: 'pl2', numero: 2, periodo: '2026-09', estado: 'APROBADA', neto: 1, cobroNumero: 'COB-2026-0002' },
       ],
       crear: () => throwError(() => respuestas.shift()),
     });

@@ -25,9 +25,14 @@
         <app-estado-chip [estado]="planilla.estado" />
       </div>
       <span class="secundario">Periodo {{ nombrePeriodo(planilla.periodo) }}</span>
+      <!-- 008, criterio 14: el número de cobro cuando la planilla está aprobada -->
+      @if (planilla.cobro; as cobro) {
+        <span class="cobro">Cobro <strong class="sv-numero">{{ cobro.numero }}</strong></span>
+      }
     </header>
 
-    <!-- Criterio 9: la observación del cliente (o de la saga) se ve para corregir y volver a presentar -->
+    <!-- 007, criterio 9, y 008, criterio 14: la observación del cliente (o el motivo del fallo de la aprobación) se ve
+         para corregir y volver a presentar -->
     @if (planilla.estado === 'OBSERVADA' && planilla.observacion) {
       <div class="aviso aviso-error observacion" role="note">
         <strong>Observación</strong>

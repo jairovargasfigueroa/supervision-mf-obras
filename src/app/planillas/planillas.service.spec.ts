@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/testing';
 import { firstValueFrom } from 'rxjs';
 import { CONSULTA_FOTOS } from '../obras/obras.graphql';
-import { MUTACION_CREAR_PLANILLA } from './planillas.graphql';
+import { CONSULTA_PLANILLA, MUTACION_CREAR_PLANILLA } from './planillas.graphql';
 import { PlanillasService } from './planillas.service';
 
 /** Planilla como la devuelve el gateway (con __typename, como la escribe la caché). */
@@ -23,6 +23,7 @@ function planillaDelGateway(cambios: Record<string, unknown> = {}) {
     anticipoPct: 10,
     retencionPct: 7,
     observacion: null,
+    cobro: null,
     fotoIds: [],
     ...cambios,
   };
@@ -46,6 +47,22 @@ describe('PlanillasService', () => {
     expect(operacion.operation.variables).toEqual({ obraId: 'b1', periodo: '2026-11' });
     operacion.flushData({ crearPlanilla: planillaDelGateway() });
     expect(await respuesta).toMatchObject({ id: 'pl1', estado: 'BORRADOR', numero: 1 });
+  });
+
+  it('obtener pide siempre al gateway (no a la caché) para ver el estado y el cobro actuales (008)', async () => {
+    const aprobada = planillaDelGateway({
+      estado: 'APROBADA',
+      cobro: { __typename: 'CobroPlanilla', id: 'c1', numero: 'COB-2026-0003' },
+    });
+    const primera = firstValueFrom(servicio.obtener('pl1'));
+    gateway.expectOne(CONSULTA_PLANILLA).flushData({ planilla: planillaDelGateway({ estado: 'APROBANDO' }) });
+    expect(await primera).toMatchObject({ estado: 'APROBANDO', cobro: null });
+
+    const segunda = firstValueFrom(servicio.obtener('pl1'));
+    const operacion = gateway.expectOne(CONSULTA_PLANILLA);
+    expect(operacion.operation.variables).toEqual({ id: 'pl1' });
+    operacion.flushData({ planilla: aprobada });
+    expect(await segunda).toMatchObject({ estado: 'APROBADA', cobro: { id: 'c1', numero: 'COB-2026-0003' } });
   });
 });
 

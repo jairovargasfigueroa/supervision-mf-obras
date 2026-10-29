@@ -16,7 +16,9 @@ import { ObrasService } from '../obras.service';
 /**
  * Pestaña «Planillas» (006, criterio 3): número, periodo, estado y neto, la más reciente primero. Las planillas llegan
  * con la 007: mientras el gateway no expone `planillas`, se muestra el estado vacío. Si no responde, «No disponible
- * por el momento» (criterio 4). El residente asignado ve «Nueva planilla» y el periodo abre la planilla (007).
+ * por el momento» (criterio 4). El residente asignado ve «Nueva planilla» y el periodo abre la planilla (007). 008: el
+ * número del cobro de las aprobadas («—» si no tiene); la observación se ve al abrir la planilla (la lista del contrato
+ * no la trae).
  */
 @Component({
   selector: 'app-pestana-planillas',
@@ -37,7 +39,7 @@ export class PestanaPlanillasComponent implements OnInit {
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly planillas = signal<PlanillaResumen[]>([]);
-  protected readonly columnas = ['numero', 'periodo', 'estado', 'neto'];
+  protected readonly columnas = ['numero', 'periodo', 'estado', 'neto', 'cobro'];
   protected readonly monto = formatearMonto;
   protected readonly nombrePeriodo = formatearPeriodo;
 

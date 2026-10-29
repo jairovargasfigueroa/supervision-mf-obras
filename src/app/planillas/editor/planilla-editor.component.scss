@@ -116,6 +116,16 @@ figcaption {
   font-size: 12px;
 }
 
+// 008: número del cobro de la planilla aprobada, en el encabezado
+.cobro {
+  color: var(--sv-texto-secundario);
+
+  strong {
+    color: var(--sv-texto);
+    font-weight: 600;
+  }
+}
+
 .observacion {
   flex-direction: column;
   align-items: flex-start;

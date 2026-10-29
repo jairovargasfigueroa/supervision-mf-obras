@@ -7,6 +7,7 @@ import {
   CONSULTA_USUARIOS,
   MUTACION_REGISTRAR_OBRA,
   type EstadoObra,
+  type FiltrosObras,
   type Obra,
   type ObraResumen,
   type RegistrarObraEntrada,
@@ -19,9 +20,10 @@ import {
 export class ObrasService {
   private readonly apollo = inject(Apollo);
 
-  listar(): Observable<ObraResumen[]> {
+  /** Obras que el usuario puede ver; el gateway filtra por estado y busca por nombre (006, criterio 2). */
+  listar(filtros: FiltrosObras = {}): Observable<ObraResumen[]> {
     return this.apollo
-      .query({ query: CONSULTA_OBRAS, fetchPolicy: 'network-only' })
+      .query({ query: CONSULTA_OBRAS, variables: filtros, fetchPolicy: 'network-only' })
       .pipe(map((resultado) => resultado.data?.obras ?? []));
   }
 

@@ -66,7 +66,13 @@ export interface RegistrarObraEntrada {
   }[];
 }
 
-export const CONSULTA_OBRAS = gql<{ obras: ObraResumen[] }, { estado?: EstadoObra; busqueda?: string }>`
+/** Filtros de la lista (006, criterio 2); un filtro vacío no se manda. */
+export interface FiltrosObras {
+  estado?: EstadoObra;
+  busqueda?: string;
+}
+
+export const CONSULTA_OBRAS = gql<{ obras: ObraResumen[] }, FiltrosObras>`
   query Obras($estado: EstadoObra, $busqueda: String) {
     obras(estado: $estado, busqueda: $busqueda) {
       id

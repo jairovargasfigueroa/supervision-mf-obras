@@ -5,4 +5,4 @@ Requisitos y diseño: `docs/specs/001-iniciar-sesion/` de la carpeta que agrupa 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [ ] `SesionService` que lee `window.plataforma.sesion` e interceptor que agrega el token
-- [ ] Mensaje «Abre esta pantalla desde el ERP» si no hay sesión del shell
+- [x] Mensaje «Abre esta pantalla desde el ERP» si no hay sesión del shell (adelantada en la fase 1, tarea 1.8)

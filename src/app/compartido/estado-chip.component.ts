@@ -15,7 +15,7 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
  */
 export type EstadoMostrable = EstadoObra | EstadoPlanilla | EstadoCobro | 'EN_RIESGO' | 'EXCEDIDO';
 
-const ETIQUETAS: Record<EstadoMostrable, string> = {
+export const ETIQUETAS: Record<EstadoMostrable, string> = {
   ...ETIQUETA_ESTADO_OBRA,
   BORRADOR: 'Borrador',
   PRESENTADA: 'Presentada',

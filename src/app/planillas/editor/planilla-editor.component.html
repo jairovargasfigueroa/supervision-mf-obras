@@ -109,15 +109,68 @@
       }
     </section>
 
-    @if (editable()) {
-      @if (hayFilasQueSuperan()) {
-        <div class="aviso aviso-error" role="alert">{{ mensajeFilasSuperan }}</div>
-      } @else if (errorAccion()) {
-        <div class="aviso aviso-error" role="alert">{{ errorAccion() }}</div>
+    <section class="tarjeta" aria-labelledby="titulo-fotos">
+      <h2 id="titulo-fotos">Fotos de respaldo</h2>
+      @if (estadoFotos() === 'cargando') {
+        <p class="cargando">Cargando fotos…</p>
+      } @else if (estadoFotos() === 'error') {
+        <app-estado-error (reintentar)="cargarFotos()" />
+      } @else if (fotosVisibles().length === 0) {
+        <p class="secundario">
+          {{ editable() ? 'No hay fotos de avance registradas en este periodo.' : 'La planilla no tiene fotos adjuntas.' }}
+        </p>
+      } @else {
+        <ul class="galeria">
+          @for (foto of fotosVisibles(); track foto.id) {
+            <li [class.elegida]="editable() && fotosElegidas().has(foto.id)">
+              <figure>
+                <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
+                  <img [src]="foto.urlDescarga" loading="lazy" [alt]="'Foto del ' + fechaHora(foto.registradoEn)" />
+                </a>
+                <figcaption>
+                  <span class="sv-numero">{{ fechaHora(foto.registradoEn) }}</span>
+                  <span class="secundario">{{ foto.registradoPor?.nombre ?? '—' }}</span>
+                  @if (editable()) {
+                    <mat-checkbox
+                      [checked]="fotosElegidas().has(foto.id)"
+                      [disabled]="ocupado() !== null"
+                      (change)="alternarFoto(foto.id)"
+                    >
+                      Adjuntar
+                    </mat-checkbox>
+                  }
+                </figcaption>
+              </figure>
+            </li>
+          }
+        </ul>
       }
+    </section>
+
+    @if (editable() && hayFilasQueSuperan()) {
+      <div class="aviso aviso-error" role="alert">{{ mensajeFilasSuperan }}</div>
+    } @else if (errorAccion()) {
+      <div class="aviso aviso-error" role="alert">
+        <span>{{ errorAccion() }}</span>
+        @if (versionDesactualizada()) {
+          <button mat-button type="button" (click)="cargar()">Recargar</button>
+        }
+      </div>
+    }
+
+    @if (editable()) {
       <div class="acciones">
         <button mat-stroked-button type="button" [disabled]="!puedeGuardar()" (click)="guardar()">
           {{ ocupado() === 'guardando' ? 'Guardando…' : 'Guardar' }}
+        </button>
+        <button mat-flat-button type="button" [disabled]="!puedePresentar()" (click)="presentar()">
+          {{
+            ocupado() === 'presentando'
+              ? 'Presentando…'
+              : planilla.estado === 'OBSERVADA'
+                ? 'Volver a presentar'
+                : 'Presentar'
+          }}
         </button>
       </div>
     }

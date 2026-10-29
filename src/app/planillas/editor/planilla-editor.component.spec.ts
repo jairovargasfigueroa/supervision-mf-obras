@@ -206,3 +206,119 @@ describe('PlanillaEditorComponent (edición)', () => {
     expect(aviso()).toBe('Hay filas que superan lo contratado. Corrígelas para guardar.');
   });
 });
+
+const FOTO = (id: string, registradoEn: string) => ({
+  id,
+  partidaId: 'p1',
+  registradoPor: { id: 'm1', nombre: 'Mario Quispe' },
+  registradoEn,
+  urlDescarga: `https://s3.example/${id}.jpg`,
+});
+
+/** La planilla después de cargar 120 en la losa (como la devuelve Obras). */
+const CON_CANTIDAD: Planilla = {
+  ...PLANILLA,
+  lineas: [
+    { ...PLANILLA.lineas[0], cantidadPeriodo: 120, acumuladoTotal: 420, saldo: 430, monto: 50460 },
+    PLANILLA.lineas[1],
+  ],
+  subtotal: 50460,
+  descuentoAnticipo: 5046,
+  retencion: 3532.2,
+  neto: 41881.8,
+};
+
+describe('PlanillaEditorComponent (fotos, guardar y presentar)', () => {
+  afterEach(() => delete window.plataforma);
+
+  it('muestra las fotos del periodo y adjunta las elegidas al guardar (criterio 6)', () => {
+    const { elemento, fixture, servicio, pulsar } = montarEditor({
+      planilla: { fotoIds: ['f1'] },
+      fotos: () => of([FOTO('f1', '2026-11-20T15:00:00Z'), FOTO('f2', '2026-11-05T15:00:00Z')]),
+    });
+    expect(servicio.fotosDelPeriodo).toHaveBeenCalledWith('b1', '2026-11');
+    const casillas = () => [...elemento.querySelectorAll<HTMLInputElement>('mat-checkbox input')];
+    expect(casillas().map((casilla) => casilla.checked)).toEqual([true, false]);
+    casillas()[0].click();
+    casillas()[1].click();
+    fixture.detectChanges();
+    pulsar('Guardar');
+    expect(servicio.guardar.mock.calls[0][1].fotoIds).toEqual(['f2']);
+  });
+
+  it('si la galería no responde, solo esa sección muestra «No disponible por el momento»', () => {
+    const { elemento } = montarEditor({ fotos: () => throwError(() => new Error('caído')) });
+    expect(elemento.querySelector('app-estado-error')?.textContent).toContain('No disponible por el momento.');
+    expect(elemento.querySelectorAll('input[type="number"]').length).toBe(2);
+  });
+
+  it('si otra persona guardó antes avisa y «Recargar» trae la última versión (criterio 7)', () => {
+    const lecturas: Planilla[] = [PLANILLA, { ...CON_CANTIDAD, version: 5 }];
+    const { escribir, pulsar, aviso, servicio, entradas } = montarEditor({
+      obtener: () => of(lecturas.shift()!),
+      guardar: () => throwError(() => errorGraphql('VERSION_DESACTUALIZADA', 409)),
+    });
+    escribir(1, '10');
+    pulsar('Guardar');
+    expect(aviso()).toContain('La planilla cambió, recarga para ver la última versión');
+    pulsar('Recargar');
+    expect(servicio.obtener).toHaveBeenCalledTimes(2);
+    expect(entradas().map((entrada) => entrada.value)).toEqual(['120', '0']);
+    expect(aviso()).toBeUndefined();
+  });
+
+  it('«Presentar» no se permite con subtotal 0 (criterio 8)', () => {
+    const { boton, escribir } = montarEditor();
+    expect(boton('Presentar')!.disabled).toBe(true);
+    escribir(1, '10');
+    expect(boton('Presentar')!.disabled).toBe(false);
+    escribir(1, '0');
+    expect(boton('Presentar')!.disabled).toBe(true);
+  });
+
+  it('«Presentar» presenta la versión guardada y deja la planilla en lectura (criterio 8)', () => {
+    const { pulsar, servicio, entradas, elemento } = montarEditor({
+      planilla: CON_CANTIDAD,
+      presentar: () => of({ ...CON_CANTIDAD, estado: 'PRESENTADA', version: 3 }),
+    });
+    pulsar('Presentar');
+    expect(servicio.guardar).not.toHaveBeenCalled();
+    expect(servicio.presentar).toHaveBeenCalledWith('pl1', 2);
+    expect(elemento.querySelector('app-estado-chip')?.textContent).toContain('Presentada');
+    expect(entradas()).toEqual([]);
+  });
+
+  it('con cambios sin guardar, «Presentar» guarda primero y presenta con la versión nueva', () => {
+    const { escribir, pulsar, servicio } = montarEditor({
+      guardar: () => of({ ...CON_CANTIDAD, version: 3 }),
+      presentar: () => of({ ...CON_CANTIDAD, estado: 'PRESENTADA', version: 4 }),
+    });
+    escribir(0, '120');
+    pulsar('Presentar');
+    expect(servicio.guardar).toHaveBeenCalledWith('pl1', expect.objectContaining({ version: 2 }));
+    expect(servicio.presentar).toHaveBeenCalledWith('pl1', 3);
+  });
+
+  it('muestra el motivo si Obras no la deja presentar (SUBTOTAL_CERO)', () => {
+    const { pulsar, aviso } = montarEditor({
+      planilla: CON_CANTIDAD,
+      presentar: () => throwError(() => errorGraphql('SUBTOTAL_CERO', 422)),
+    });
+    pulsar('Presentar');
+    expect(aviso()).toBe(
+      'No se puede presentar una planilla con subtotal 0. Indica las cantidades ejecutadas del periodo.',
+    );
+  });
+
+  it('si ya no es editable la recarga en lectura y dice su estado (PLANILLA_NO_EDITABLE)', () => {
+    const lecturas: Planilla[] = [PLANILLA, { ...CON_CANTIDAD, estado: 'PRESENTADA' }];
+    const { escribir, pulsar, aviso, entradas } = montarEditor({
+      obtener: () => of(lecturas.shift()!),
+      guardar: () => throwError(() => errorGraphql('PLANILLA_NO_EDITABLE', 409)),
+    });
+    escribir(1, '10');
+    pulsar('Guardar');
+    expect(aviso()).toBe('La planilla ya no se puede editar (estado Presentada)');
+    expect(entradas()).toEqual([]);
+  });
+});

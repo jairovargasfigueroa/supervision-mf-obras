@@ -17,6 +17,7 @@ import {
   formatearPorcentaje,
 } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
+import { esResidenteAsignado } from '../../planillas/nueva/planilla-nueva.component';
 import type { FinanzasObra, Obra } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
 import { PestanaCobrosComponent } from './pestana-cobros.component';
@@ -84,6 +85,11 @@ export class ObraDetalleComponent implements OnInit {
   protected readonly veFinanzas = computed(() => {
     const roles = this.sesion.usuario()?.roles ?? [];
     return roles.includes('admin') || roles.includes('gerente');
+  });
+  /** «Nueva planilla»: solo el residente asignado y con la obra en ejecución (007, criterios 1 y 10). */
+  protected readonly puedeCrearPlanilla = computed(() => {
+    const obra = this.obra();
+    return obra?.estado === 'EN_EJECUCION' && esResidenteAsignado(obra, this.sesion.usuario());
   });
   protected readonly estadoFinanzas = signal<'sin-pedir' | 'cargando' | 'listo' | 'error'>('sin-pedir');
   protected readonly finanzas = signal<FinanzasObra | null>(null);

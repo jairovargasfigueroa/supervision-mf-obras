@@ -26,6 +26,28 @@ describe('errores (extensions.codigo → docs/mensajes.md)', () => {
     expect(mensajeDeError(error('INSUMO_REPETIDO'))).toBe('La partida tiene el mismo material más de una vez.');
   });
 
+  it('planillas (007): un mensaje distinto por cada motivo de criterio 2, con o sin el dato del marcador', () => {
+    expect(mensajeDeError(error('PLANILLA_ABIERTA_EXISTE', 409))).toBe(
+      'Ya hay una planilla sin aprobar en esta obra. Termínala antes de crear otra.',
+    );
+    expect(mensajeDeError(error('PERIODO_NO_POSTERIOR'), { periodoUltima: 'Noviembre 2026' })).toBe(
+      'El periodo debe ser posterior al de la última planilla (Noviembre 2026).',
+    );
+    expect(mensajeDeError(error('PERIODO_NO_POSTERIOR'))).toBe(
+      'El periodo debe ser posterior al de la última planilla.',
+    );
+    expect(mensajeDeError(error('PERIODO_FUTURO'))).toBe(
+      'No se puede crear la planilla de un mes que todavía no llegó.',
+    );
+    expect(mensajeDeError(error('VERSION_DESACTUALIZADA', 409))).toBe(
+      'La planilla cambió, recarga para ver la última versión',
+    );
+    expect(mensajeDeError(error('PLANILLA_NO_EDITABLE', 409), { estado: 'Presentada' })).toBe(
+      'La planilla ya no se puede editar (estado Presentada)',
+    );
+    expect(mensajeDeError(error('PLANILLA_NO_EDITABLE', 409))).toBe('La planilla ya no se puede editar');
+  });
+
   it('un código desconocido usa el genérico de su estado', () => {
     expect(mensajeDeError(error('OTRO_CODIGO', 422))).toBe(
       'No se pudo completar la operación porque no cumple una regla del sistema.',

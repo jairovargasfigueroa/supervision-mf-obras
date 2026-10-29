@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal, type OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatTableModule } from '@angular/material/table';
+import { RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
@@ -13,17 +16,19 @@ import { ObrasService } from '../obras.service';
 /**
  * Pestaña «Planillas» (006, criterio 3): número, periodo, estado y neto, la más reciente primero. Las planillas llegan
  * con la 007: mientras el gateway no expone `planillas`, se muestra el estado vacío. Si no responde, «No disponible
- * por el momento» (criterio 4).
+ * por el momento» (criterio 4). El residente asignado ve «Nueva planilla» (007).
  */
 @Component({
   selector: 'app-pestana-planillas',
-  imports: [MatTableModule, EstadoChipComponent, EstadoErrorComponent, EstadoVacioComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, MatTableModule, EstadoChipComponent, EstadoErrorComponent, EstadoVacioComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pestana-planillas.component.html',
   styleUrl: './pestana.scss',
 })
 export class PestanaPlanillasComponent implements OnInit {
   readonly obraId = input.required<string>();
+  /** El usuario es el residente asignado y la obra está en ejecución: ve «Nueva planilla» (007, criterio 1). */
+  readonly puedeCrear = input(false);
 
   private readonly servicio = inject(ObrasService);
   private readonly destruir = inject(DestroyRef);

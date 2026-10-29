@@ -12,6 +12,7 @@
     - `finanzas { saldoDisponible totalCobrado }`, solo para `admin` y `gerente` y cuando la obra ya tiene `contrato.contratoId`;
     - una por pestaña, al abrirla: `materialComparado(periodo: "AAAA-MM")` (con `material { id codigo nombre unidad unidadPlural }`), `fotos(pagina, tamano: 50)` (005; con `registradoPor { id nombre }`), `planillas { id numero periodo estado neto }` (007) y `cobros` (solo `admin` y `gerente`).
     - Si una de esas consultas falla (`SERVICIO_NO_DISPONIBLE`, tiempo agotado), solo su sección muestra «No disponible por el momento» con «Reintentar». Si el gateway todavía no expone `planillas` (error de validación del esquema), la pestaña muestra el estado vacío.
+  - 007: `planillas` del detalle ya expuesta por el gateway. «Nueva planilla» (`/obras/{id}/planillas/nueva`, solo el `residente` asignado y con la obra `EN_EJECUCION`): `obra(id) { id nombre estado fechaInicio residente { id nombre } }` (con `errorPolicy: 'all'`), `planillas` (solo para completar `{periodoUltima}`) y `crearPlanilla(obraId, periodo)`; ofrece los meses desde el inicio de la obra hasta el actual. Errores `PLANILLA_ABIERTA_EXISTE`, `PERIODO_NO_POSTERIOR`, `PERIODO_FUTURO` y `OBRA_NO_EN_EJECUCION` con su texto.
   - Errores: `extensions.codigo` → texto de `docs/mensajes.md` en `nucleo/errores.ts`.
 - Shell: sesión del usuario en `window.plataforma.sesion` (token con `obtenerToken()`).
 

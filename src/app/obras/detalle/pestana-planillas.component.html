@@ -1,3 +1,11 @@
+@if (puedeCrear()) {
+  <div class="herramientas">
+    <a mat-flat-button routerLink="planillas/nueva">
+      <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+      Nueva planilla
+    </a>
+  </div>
+}
 @if (estado() === 'cargando') {
   <p class="cargando">Cargando planillas…</p>
 } @else if (estado() === 'error') {

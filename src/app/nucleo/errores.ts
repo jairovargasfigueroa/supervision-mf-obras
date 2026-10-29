@@ -29,6 +29,17 @@ const MENSAJES: Record<string, string> = {
   CONTRATO_INVALIDO:
     'Los datos del contrato no son válidos: el monto y el plazo deben ser mayores a 0, y el anticipo y la retención deben estar entre 0 y 100 y sumar menos de 100.',
   OBRA_NO_ENCONTRADA: 'Obra no encontrada',
+  // Planillas (007)
+  PLANILLA_ABIERTA_EXISTE: 'Ya hay una planilla sin aprobar en esta obra. Termínala antes de crear otra.',
+  PERIODO_NO_POSTERIOR: 'El periodo debe ser posterior al de la última planilla ({periodoUltima}).',
+  PERIODO_FUTURO: 'No se puede crear la planilla de un mes que todavía no llegó.',
+  OBRA_NO_EN_EJECUCION: 'La obra no está en ejecución',
+  VERSION_DESACTUALIZADA: 'La planilla cambió, recarga para ver la última versión',
+  PLANILLA_NO_EDITABLE: 'La planilla ya no se puede editar (estado {estado})',
+  SUPERA_CANTIDAD_CONTRATADA: 'Hay filas que superan lo contratado. Corrígelas para guardar.',
+  FOTO_FUERA_DEL_PERIODO: 'Una de las fotos adjuntas no es de este periodo. Quítala para guardar.',
+  SUBTOTAL_CERO:
+    'No se puede presentar una planilla con subtotal 0. Indica las cantidades ejecutadas del periodo.',
 };
 
 const GENERICOS_POR_ESTADO: Record<number, string> = {
@@ -96,8 +107,13 @@ export function registrarError(contexto: string, error: ErrorLeido): void {
 
 function completar(plantilla: string, datos: Record<string, string>): string {
   return plantilla
-    .replace(/ ?\(?(Bs )?\{(\w+)\}\)?/g, (parte, _bs, clave: string) =>
-      datos[clave] !== undefined ? parte.replace(`{${clave}}`, datos[clave]) : '',
+    // Un paréntesis con su marcador («(Bs {monto})», «({codigo})», «(estado {estado})») sale entero si falta el dato
+    .replace(
+      / ?\((\p{L}+ )?\{(\w+)\}\)| ?(Bs )?\{(\w+)\}/gu,
+      (parte, _prefijo, enParentesis: string | undefined, _bs, suelto: string | undefined) => {
+        const clave = (enParentesis ?? suelto)!;
+        return datos[clave] !== undefined ? parte.replace(`{${clave}}`, datos[clave]) : '';
+      },
     )
     .trim();
 }

@@ -178,7 +178,7 @@
       </mat-tab>
       <mat-tab label="Planillas">
         <ng-template matTabContent>
-          <app-pestana-planillas [obraId]="obra.id" />
+          <app-pestana-planillas [obraId]="obra.id" [puedeCrear]="puedeCrearPlanilla()" />
         </ng-template>
       </mat-tab>
       @if (veFinanzas()) {

@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal, type OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, type OnInit } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { formatearFecha, formatearPorcentaje } from '../../nucleo/formato';
@@ -12,11 +15,19 @@ import { ObrasService } from '../obras.service';
  */
 @Component({
   selector: 'app-obras-lista',
-  imports: [EstadoVacioComponent, EstadoErrorComponent],
+  imports: [RouterLink, MatButtonModule, MatIconModule, EstadoVacioComponent, EstadoErrorComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="pagina">
-      <h1>Obras</h1>
+      <header class="titulo">
+        <h1>Obras</h1>
+        @if (sesion.dentroDelErp() && esAdmin()) {
+          <a mat-flat-button routerLink="nueva">
+            <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+            Nueva obra
+          </a>
+        }
+      </header>
       @if (!sesion.dentroDelErp()) {
         <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
       } @else if (estado() === 'cargando') {
@@ -24,7 +35,12 @@ import { ObrasService } from '../obras.service';
       } @else if (estado() === 'error') {
         <app-estado-error (reintentar)="cargar()" />
       } @else if (obras().length === 0) {
-        <app-estado-vacio texto="Aún no hay obras." icono="apartment" />
+        <app-estado-vacio
+          texto="Aún no hay obras."
+          icono="apartment"
+          [accion]="esAdmin() ? 'Registrar obra' : undefined"
+          (pulsado)="registrar()"
+        />
       } @else {
         <ul class="obras">
           @for (obra of obras(); track obra.id) {
@@ -44,6 +60,12 @@ import { ObrasService } from '../obras.service';
       display: flex;
       flex-direction: column;
       gap: 16px;
+    }
+    .titulo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
     h1 {
       margin: 0;
@@ -79,6 +101,11 @@ import { ObrasService } from '../obras.service';
 export class ObrasListaComponent implements OnInit {
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(ObrasService);
+  private readonly router = inject(Router);
+  private readonly ruta = inject(ActivatedRoute);
+
+  /** Solo admin registra obras (002, criterio 10): residente y gerente no ven «Nueva obra». */
+  protected readonly esAdmin = computed(() => this.sesion.usuario()?.roles.includes('admin') ?? false);
 
   protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
   protected readonly obras = signal<ObraResumen[]>([]);
@@ -87,6 +114,10 @@ export class ObrasListaComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.sesion.dentroDelErp()) this.cargar();
+  }
+
+  registrar(): void {
+    void this.router.navigate(['nueva'], { relativeTo: this.ruta });
   }
 
   cargar(): void {

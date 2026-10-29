@@ -1,0 +1,39 @@
+.pagina {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.migas {
+  color: var(--sv-texto-secundario);
+}
+
+.migas a {
+  color: var(--sv-primario);
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.tarjeta {
+  background: var(--sv-superficie);
+  border: 1px solid var(--sv-borde);
+  border-radius: var(--sv-radio-tarjeta);
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@media (max-width: 599px) {
+  .pagina {
+    padding: 16px;
+  }
+}

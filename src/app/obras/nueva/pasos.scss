@@ -1,0 +1,54 @@
+// Estilos comunes de los tres pasos de «Nueva obra».
+:host {
+  display: block;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 16px;
+}
+
+.ancho {
+  grid-column: span 2;
+}
+
+h3 {
+  margin: 8px 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: var(--sv-radio-control);
+}
+
+.aviso-error {
+  color: var(--sv-error);
+  background: var(--sv-error-suave);
+}
+
+.aviso-info {
+  color: var(--sv-primario);
+  background: var(--sv-primario-suave);
+}
+
+.aviso-ok {
+  color: var(--sv-exito);
+  background: var(--sv-exito-suave);
+}
+
+@media (max-width: 599px) {
+  .campos {
+    grid-template-columns: 1fr;
+  }
+  .ancho {
+    grid-column: auto;
+  }
+}

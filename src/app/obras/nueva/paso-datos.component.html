@@ -1,0 +1,53 @@
+<div class="campos" [formGroup]="grupo()">
+  <mat-form-field class="ancho">
+    <mat-label>Nombre de la obra</mat-label>
+    <input matInput formControlName="nombre" maxlength="150" required />
+    @if (grupo().controls.nombre.invalid) {
+      <mat-error>{{ mensaje(grupo().controls.nombre) }}</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field class="ancho">
+    <mat-label>Ubicación</mat-label>
+    <input matInput formControlName="ubicacion" maxlength="200" required />
+    @if (grupo().controls.ubicacion.invalid) {
+      <mat-error>{{ mensaje(grupo().controls.ubicacion) }}</mat-error>
+    }
+  </mat-form-field>
+
+  <mat-form-field>
+    <mat-label>Fecha de inicio</mat-label>
+    <input matInput type="date" formControlName="fechaInicio" required />
+    @if (grupo().controls.fechaInicio.invalid) {
+      <mat-error>{{ mensaje(grupo().controls.fechaInicio) }}</mat-error>
+    }
+  </mat-form-field>
+</div>
+
+<h3>Asignaciones</h3>
+@if (estadoUsuarios() === 'error') {
+  <div class="aviso aviso-error" role="alert">
+    <span>No se pudo cargar la lista de usuarios.</span>
+    <button mat-button type="button" (click)="reintentarUsuarios.emit()">Reintentar</button>
+  </div>
+}
+<div class="campos" [formGroup]="grupo()">
+  @for (asignacion of asignaciones; track asignacion.rol) {
+    <mat-form-field>
+      <mat-label>{{ asignacion.etiqueta }}</mat-label>
+      <mat-select [formControlName]="asignacion.campo" required>
+        @for (usuario of usuarios()[asignacion.rol]; track usuario.id) {
+          <mat-option [value]="usuario.id">{{ usuario.nombre }}</mat-option>
+        }
+      </mat-select>
+      @if (estadoUsuarios() === 'cargando') {
+        <mat-hint>Cargando usuarios…</mat-hint>
+      } @else if (estadoUsuarios() === 'listo' && usuarios()[asignacion.rol].length === 0) {
+        <mat-hint>No hay usuarios con este rol en Keycloak</mat-hint>
+      }
+      @if (grupo().controls[asignacion.campo].invalid) {
+        <mat-error>{{ mensaje(grupo().controls[asignacion.campo]) }}</mat-error>
+      }
+    </mat-form-field>
+  }
+</div>

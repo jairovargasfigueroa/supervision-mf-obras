@@ -1,0 +1,39 @@
+<section class="pagina">
+  <nav class="migas"><a routerLink="..">Obras</a> / Nueva obra</nav>
+  <h1>Nueva obra</h1>
+
+  @if (!sesion.dentroDelErp()) {
+    <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (!esAdmin()) {
+    <app-estado-vacio texto="No tienes permiso para hacer esta acción." icono="lock" />
+  } @else {
+    <mat-stepper class="tarjeta" linear #stepper>
+      <mat-step [stepControl]="formulario.controls.datos" label="Datos y asignaciones">
+        <app-paso-datos
+          [grupo]="formulario.controls.datos"
+          [usuarios]="usuarios()"
+          [estadoUsuarios]="estadoUsuarios()"
+          (reintentarUsuarios)="cargarUsuarios()"
+        />
+        <div class="acciones">
+          <a mat-button routerLink="..">Cancelar</a>
+          <button mat-flat-button type="button" (click)="siguiente('datos')">Siguiente: contrato</button>
+        </div>
+      </mat-step>
+
+      <mat-step [stepControl]="formulario.controls.contrato" label="Contrato">
+        <app-paso-contrato [grupo]="formulario.controls.contrato" />
+        <div class="acciones">
+          <button mat-button type="button" matStepperPrevious>Atrás</button>
+          <button mat-flat-button type="button" (click)="siguiente('contrato')">Siguiente: presupuesto</button>
+        </div>
+      </mat-step>
+
+      <mat-step label="Presupuesto">
+        <div class="acciones">
+          <button mat-button type="button" matStepperPrevious>Atrás</button>
+        </div>
+      </mat-step>
+    </mat-stepper>
+  }
+</section>

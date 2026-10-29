@@ -32,6 +32,53 @@ h1 {
   margin-top: 16px;
 }
 
+.aviso {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: var(--sv-radio-control);
+}
+
+.aviso-error {
+  color: var(--sv-error);
+  background: var(--sv-error-suave);
+}
+
+// Resumen siempre visible al pie del asistente (se queda fijo al desplazarse)
+.resumen {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  padding: 12px 16px;
+  background: var(--sv-superficie);
+  border: 1px solid var(--sv-borde);
+  border-left: 4px solid var(--sv-atencion);
+  border-radius: var(--sv-radio-tarjeta);
+}
+
+.resumen div {
+  display: flex;
+  flex-direction: column;
+}
+
+.resumen .etiqueta {
+  color: var(--sv-texto-secundario);
+  font-size: 12px;
+}
+
+.resumen .diferencia {
+  color: var(--sv-atencion);
+}
+
+.resumen.coincide {
+  border-left-color: var(--sv-exito);
+}
+
+.resumen.coincide .diferencia {
+  color: var(--sv-exito);
+}
+
 @media (max-width: 599px) {
   .pagina {
     padding: 16px;

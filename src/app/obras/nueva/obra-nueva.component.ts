@@ -2,14 +2,18 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, startWith } from 'rxjs';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
+import { formatearImporte, formatearMonto } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
 import { ObrasService } from '../obras.service';
 import { crearFormulario, revisarAlCambiarEstado } from './formulario';
 import { PasoContratoComponent } from './paso-contrato.component';
 import { PasoDatosComponent, type UsuariosPorRol } from './paso-datos.component';
+import { PasoPresupuestoComponent } from './paso-presupuesto.component';
+import { resumirPresupuesto } from './presupuesto';
 
 const SIN_USUARIOS: UsuariosPorRol = { residente: [], maestro: [], almacenero: [], cliente: [] };
 
@@ -24,6 +28,7 @@ const SIN_USUARIOS: UsuariosPorRol = { residente: [], maestro: [], almacenero: [
     EstadoVacioComponent,
     PasoDatosComponent,
     PasoContratoComponent,
+    PasoPresupuestoComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './obra-nueva.component.html',
@@ -37,6 +42,26 @@ export class ObraNuevaComponent implements OnInit {
   protected readonly formulario = crearFormulario(inject(NonNullableFormBuilder));
   protected readonly usuarios = signal<UsuariosPorRol>(SIN_USUARIOS);
   protected readonly estadoUsuarios = signal<'cargando' | 'listo' | 'error'>('cargando');
+
+  /** Suma del presupuesto y diferencia con el monto, recalculadas con cada cambio (criterio 5). */
+  protected readonly resumen = toSignal(
+    this.formulario.valueChanges.pipe(
+      startWith(null),
+      map(() => {
+        const { partidas, contrato } = this.formulario.getRawValue();
+        return resumirPresupuesto(partidas, contrato.monto);
+      }),
+    ),
+    { requireSync: true },
+  );
+  /** Criterio 6: no se puede guardar si la suma no coincide con el monto (tolerancia 0,01). */
+  protected readonly mensajePresupuesto = computed(() => {
+    const { total, monto, coincide } = this.resumen();
+    return coincide
+      ? ''
+      : `El presupuesto (Bs ${formatearImporte(total)}) no coincide con el monto del contrato (Bs ${formatearImporte(monto)})`;
+  });
+  protected readonly bs = formatearMonto;
 
   private readonly stepper = viewChild(MatStepper);
 

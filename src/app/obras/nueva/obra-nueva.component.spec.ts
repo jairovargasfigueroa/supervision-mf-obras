@@ -67,6 +67,34 @@ describe('ObraNuevaComponent', () => {
     expect(elemento.querySelectorAll('mat-error').length).toBeGreaterThanOrEqual(7);
   });
 
+  it('el total y la diferencia con el monto se calculan en vivo (criterios 5 y 6)', async () => {
+    sesionCon(['admin']);
+    const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]) });
+    const componente = fixture.componentInstance as unknown as {
+      formulario: import('./formulario').FormObra;
+      stepper: () => { selectedIndex: number };
+    };
+    componente.formulario.controls.contrato.controls.monto.setValue(400000);
+    componente.formulario.controls.partidas.at(0).patchValue({ cantidadContratada: 850, precioUnitario: 420.5 });
+    componente.formulario.controls.partidas.at(0).markAsTouched();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const resumen = elemento.querySelector('.resumen')!.textContent!;
+    expect(resumen).toContain('Bs 357.425,00');
+    expect(resumen).toContain('Bs 400.000,00');
+    expect(resumen).toContain('Bs -42.575,00');
+    expect(componente.formulario.hasError('presupuesto')).toBe(true);
+    expect(elemento.textContent).toContain(
+      'El presupuesto (Bs 357.425,00) no coincide con el monto del contrato (Bs 400.000,00)',
+    );
+
+    componente.formulario.controls.contrato.controls.monto.setValue(357425.01);
+    fixture.detectChanges();
+    expect(componente.formulario.hasError('presupuesto')).toBe(false);
+    expect(elemento.textContent).not.toContain('no coincide con el monto del contrato');
+  });
+
   it('si Keycloak no responde ofrece reintentar la carga de usuarios', () => {
     sesionCon(['admin']);
     const { elemento } = montar({ usuarios: () => throwError(() => new Error('sin conexión')) });

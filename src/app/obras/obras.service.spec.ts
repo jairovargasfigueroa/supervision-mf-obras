@@ -3,6 +3,7 @@ import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/testing';
 import { firstValueFrom } from 'rxjs';
 import { CONSULTA_MATERIAL_COMPARADO, CONSULTA_OBRA, CONSULTA_OBRAS } from './obras.graphql';
+import { instalarPlataformaFalsa, type PlataformaFalsa } from '../nucleo/plataforma-falsa';
 import { ObrasService } from './obras.service';
 
 /** Respuesta del gateway para la consulta principal del detalle (con __typename, como la escribe la caché). */
@@ -110,5 +111,62 @@ describe('ObrasService', () => {
     });
     const error = await respuesta.catch((e: unknown) => e);
     expect(CombinedGraphQLErrors.is(error)).toBe(true);
+  });
+
+  describe('con respaldo en el equipo (104)', () => {
+    let plataforma: PlataformaFalsa;
+
+    beforeEach(() => {
+      plataforma = instalarPlataformaFalsa();
+    });
+
+    afterEach(() => {
+      window.plataforma = undefined;
+    });
+
+    it('guarda la obra completa con la clave de la consulta y la devuelve sin conexión', async () => {
+      const enLinea = firstValueFrom(servicio.obtener('b1'));
+      gateway.expectOne(CONSULTA_OBRA).flushData({ obra: obraDelGateway() });
+      expect((await enLinea)?.desdeEquipo).toBe(false);
+      await new Promise((listo) => setTimeout(listo));
+      expect(plataforma.consultas.has('Obra:{"id":"b1"}')).toBe(true);
+
+      plataforma.cambiarConexion(false);
+      const sinConexion = await firstValueFrom(servicio.obtener('b1'));
+      expect(sinConexion?.desdeEquipo).toBe(true);
+      expect(sinConexion?.datos?.nombre).toBe('Edificio Las Palmas');
+    });
+
+    it('no guarda una obra que llegó con un campo caído (respuesta parcial)', async () => {
+      const respuesta = firstValueFrom(servicio.obtener('b1'));
+      gateway.expectOne(CONSULTA_OBRA).flush({
+        data: { obra: obraDelGateway() },
+        errors: [
+          {
+            message: 'Keycloak no responde',
+            path: ['obra', 'maestro'],
+            extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', estado: 503 },
+          },
+        ],
+      });
+      expect((await respuesta)?.datos?.nombre).toBe('Edificio Las Palmas');
+      await new Promise((listo) => setTimeout(listo));
+      expect(plataforma.consultas.size).toBe(0);
+    });
+
+    it('si el gateway no responde, muestra la lista guardada y avisa al shell', async () => {
+      plataforma.consultas.set('Obras:{}', {
+        datos: [{ id: 'b1' }],
+        guardadoEn: '2026-11-15T18:30:00Z',
+      });
+      const respuesta = firstValueFrom(servicio.listar());
+      gateway.expectOne(CONSULTA_OBRAS).networkError(new TypeError('Failed to fetch'));
+      expect(await respuesta).toEqual({
+        datos: [{ id: 'b1' }],
+        desdeEquipo: true,
+        guardadoEn: '2026-11-15T18:30:00Z',
+      });
+      expect(plataforma.fallosReportados).toBe(1);
+    });
   });
 });

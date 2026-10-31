@@ -25,6 +25,25 @@ export interface ObraResumen {
   enRiesgo: boolean;
 }
 
+/** Nivel del riesgo de retraso del modelo (402): BAJO < 30 % ≤ MEDIO < 60 % ≤ ALTO. */
+export type NivelRiesgo = 'BAJO' | 'MEDIO' | 'ALTO' | 'SIN_DATOS';
+
+export interface FactorRiesgo {
+  variable: string;
+  /** Texto para la persona, por ejemplo «El avance es de solo 20 %». */
+  descripcion: string;
+  peso: number;
+}
+
+/** Predicción del modelo de riesgo de retraso (402); `probabilidad` de 0 a 1, null con SIN_DATOS. */
+export interface RiesgoRetraso {
+  probabilidad: number | null;
+  nivel: NivelRiesgo;
+  factores: FactorRiesgo[];
+  versionModelo: string | null;
+  calculadaEn: string | null;
+}
+
 export interface Usuario {
   id: string;
   nombre: string;
@@ -65,6 +84,8 @@ export interface Obra {
   avancePct: number;
   plazoPct: number;
   enRiesgo: boolean;
+  /** 402: IA; null con SERVICIO_NO_DISPONIBLE si no responde. */
+  riesgoRetraso: RiesgoRetraso | null;
   partidas: Partida[];
 }
 
@@ -208,6 +229,13 @@ export const CONSULTA_OBRA = gql<{ obra: Obra | null }, { id: string }>`
       avancePct
       plazoPct
       enRiesgo
+      riesgoRetraso {
+        probabilidad
+        nivel
+        factores { variable descripcion peso }
+        versionModelo
+        calculadaEn
+      }
       partidas { id codigo nombre unidad cantidadContratada precioUnitario meses ejecutadaAcumulada avancePct }
     }
   }

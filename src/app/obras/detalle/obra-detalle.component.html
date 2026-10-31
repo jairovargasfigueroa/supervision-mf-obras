@@ -24,6 +24,8 @@
           @if (obra.enRiesgo) {
             <app-estado-chip estado="EN_RIESGO" />
           }
+          <!-- 402: el riesgo del modelo es otra señal, junto a «En riesgo» (la regla de Obras) -->
+          <app-riesgo-modelo [riesgo]="obra.riesgoRetraso" />
         </span>
       </div>
       <span class="secundario">

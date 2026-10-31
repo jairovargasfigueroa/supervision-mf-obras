@@ -51,11 +51,17 @@ function montar(
 ) {
   TestBed.configureTestingModule({
     imports: [PestanaMaterialComponent],
-    providers: [{ provide: ObrasService, useValue: desdeLaRed({ materialComparado }) }],
+    providers: [
+      {
+        provide: ObrasService,
+        useValue: desdeLaRed({ materialComparado, consumosAtipicos: () => of([]) }),
+      },
+    ],
   });
   const fixture = TestBed.createComponent(PestanaMaterialComponent);
   fixture.componentRef.setInput('obraId', 'b1');
   fixture.componentRef.setInput('fechaInicio', '2026-09-10');
+  fixture.componentRef.setInput('partidas', [{ id: 'p1', codigo: 'P-01' }]);
   fixture.detectChanges();
   return { fixture, elemento: fixture.nativeElement as HTMLElement };
 }

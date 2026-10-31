@@ -1,6 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatChipsModule } from '@angular/material/chips';
-import type { EstadoCobro, EstadoObra, EstadoPlanilla } from '../obras/obras.graphql';
+import type {
+  EstadoCobro,
+  EstadoObra,
+  EstadoPlanilla,
+  EstadoRevision,
+} from '../obras/obras.graphql';
 
 /** Etiqueta de cada estado de obra. SIN_CONTRATO se muestra «Registrando contrato» (002, criterio 7). */
 export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
@@ -11,9 +16,16 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
 
 /**
  * Estados que se muestran como chip: de obra, de planilla y de cobro. EN_RIESGO es la etiqueta «En riesgo» de la
- * obra (006, 009) y EXCEDIDO la del consumo excedido (006, pestaña «Material»).
+ * obra (006, 009) y EXCEDIDO la del consumo excedido (006, pestaña «Material»). ATIPICO_* son las revisiones de un
+ * consumo atípico (403).
  */
-export type EstadoMostrable = EstadoObra | EstadoPlanilla | EstadoCobro | 'EN_RIESGO' | 'EXCEDIDO';
+export type EstadoMostrable =
+  | EstadoObra
+  | EstadoPlanilla
+  | EstadoCobro
+  | 'EN_RIESGO'
+  | 'EXCEDIDO'
+  | `ATIPICO_${EstadoRevision}`;
 
 export const ETIQUETAS: Record<EstadoMostrable, string> = {
   ...ETIQUETA_ESTADO_OBRA,
@@ -26,6 +38,9 @@ export const ETIQUETAS: Record<EstadoMostrable, string> = {
   VENCIDO: 'Vencido',
   EN_RIESGO: 'En riesgo',
   EXCEDIDO: 'Excedido',
+  ATIPICO_PENDIENTE: 'Pendiente',
+  ATIPICO_NORMAL: 'Normal',
+  ATIPICO_CONFIRMADO: 'Problema confirmado',
 };
 
 /** Color de cada estado (docs/diseno-visual.md, «Estados del dominio → color»). */
@@ -42,6 +57,9 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
   VENCIDO: 'error',
   EN_RIESGO: 'atencion',
   EXCEDIDO: 'error',
+  ATIPICO_PENDIENTE: 'atencion',
+  ATIPICO_NORMAL: 'exito',
+  ATIPICO_CONFIRMADO: 'error',
 };
 
 /**

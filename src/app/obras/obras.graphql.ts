@@ -140,6 +140,31 @@ export interface FotosPagina {
   tamano: number;
 }
 
+/** Revisión de un consumo atípico (403). */
+export type EstadoRevision = 'PENDIENTE' | 'NORMAL' | 'CONFIRMADO';
+
+/** Salida de material que el modelo marcó como rara frente al consumo habitual (403). */
+export interface ConsumoAtipico {
+  id: string;
+  movimientoId: string;
+  obraId: string;
+  materialId: string;
+  /** Materiales (el gateway resuelve el nombre); null si no responde. */
+  material: MaterialCorto | null;
+  partidaId: string;
+  cantidad: number;
+  periodo: string;
+  registradoEn: string;
+  /** 0 a 1: más alto = más raro. */
+  puntaje: number;
+  motivos: string[];
+  estadoRevision: EstadoRevision;
+  revisadoPor: Pick<Usuario, 'id' | 'nombre'> | null;
+  revisadoEn: string | null;
+  comentario: string | null;
+  versionModelo: string;
+}
+
 export interface PlanillaResumen {
   id: string;
   numero: number;
@@ -317,6 +342,52 @@ export const CONSULTA_COBROS = gql<{ obra: { id: string; cobros: Cobro[] | null 
     obra(id: $id) {
       id
       cobros { id numero planillaId montoNeto emitidoEn venceEn estado }
+    }
+  }
+`;
+
+const CAMPOS_CONSUMO_ATIPICO = `
+  id
+  movimientoId
+  obraId
+  materialId
+  material { id codigo nombre unidad unidadPlural }
+  partidaId
+  cantidad
+  periodo
+  registradoEn
+  puntaje
+  motivos
+  estadoRevision
+  revisadoPor { id nombre }
+  revisadoEn
+  comentario
+  versionModelo
+`;
+
+/** 403: IA; `null` con SERVICIO_NO_DISPONIBLE si no responde. Sin `estado`, todos. */
+export const CONSULTA_CONSUMOS_ATIPICOS = gql<
+  { obra: { id: string; consumosAtipicos: ConsumoAtipico[] | null } | null },
+  { id: string; estado?: EstadoRevision }
+>`
+  query ConsumosAtipicosObra($id: ID!, $estado: EstadoRevision) {
+    obra(id: $id) {
+      id
+      consumosAtipicos(estado: $estado) {
+        ${CAMPOS_CONSUMO_ATIPICO}
+      }
+    }
+  }
+`;
+
+/** 403: solo admin y el residente asignado; no se reintenta. */
+export const MUTACION_REVISAR_CONSUMO_ATIPICO = gql<
+  { revisarConsumoAtipico: ConsumoAtipico },
+  { id: string; estado: EstadoRevision; comentario?: string }
+>`
+  mutation RevisarConsumoAtipico($id: ID!, $estado: EstadoRevision!, $comentario: String) {
+    revisarConsumoAtipico(id: $id, estado: $estado, comentario: $comentario) {
+      ${CAMPOS_CONSUMO_ATIPICO}
     }
   }
 `;

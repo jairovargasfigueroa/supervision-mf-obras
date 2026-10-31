@@ -31,7 +31,7 @@ src/
     obras/
       lista/        obras-lista.component.ts (+ .html, .scss)
       nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro)
-      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado)
+      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado), consumos-atipicos.component.ts (+ .html, .scss; 403: sección de la pestaña Material), revision-dialogo.component.ts (403: «Es normal» y «Confirmar problema»)
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/

@@ -92,6 +92,7 @@ const CONSULTAS_CON_RESPALDO = [
   'fotos',
   'planillas',
   'cobros',
+  'consumosAtipicos',
   'obra',
   'fotosDelPeriodo',
 ];

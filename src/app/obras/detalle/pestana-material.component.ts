@@ -21,8 +21,9 @@ import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, registrarError } from '../../nucleo/errores';
 import { formatearCantidad, formatearPeriodo } from '../../nucleo/formato';
 import { periodoActual, periodosDesde } from '../../nucleo/periodos';
-import type { ComparacionMaterial, MaterialCorto } from '../obras.graphql';
+import type { ComparacionMaterial, MaterialCorto, Partida } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
+import { ConsumosAtipicosComponent } from './consumos-atipicos.component';
 
 /** `12,5 bolsas` (unidad en plural salvo para 1). */
 export function cantidadMaterial(cantidad: number, material: MaterialCorto): string {
@@ -40,12 +41,14 @@ export function diferenciaMaterial(diferencia: number, material: MaterialCorto):
 /**
  * Pestaña «Material» (006, criterios 3 y 5): para el periodo elegido (por defecto el mes actual en La Paz), material
  * previsto, usado y diferencia por partida; la fila va en rojo si está excedido (lo calcula el gateway). Pide sus datos
- * al abrirse y si Obras o Materiales no responden muestra «No disponible por el momento» (criterio 4).
+ * al abrirse y si Obras o Materiales no responden muestra «No disponible por el momento» (criterio 4). Debajo, la
+ * sección «Consumos atípicos» (403), con su propia consulta y su propio error.
  */
 @Component({
   selector: 'app-pestana-material',
   imports: [
     AvisoSinConexionComponent,
+    ConsumosAtipicosComponent,
     MatFormFieldModule,
     MatIconModule,
     MatSelectModule,
@@ -62,6 +65,10 @@ export class PestanaMaterialComponent implements OnInit {
   readonly obraId = input.required<string>();
   /** `AAAA-MM-DD`: el selector ofrece los meses desde el inicio de la obra. */
   readonly fechaInicio = input.required<string>();
+  /** Partidas del detalle: códigos de la sección «Consumos atípicos» (403). */
+  readonly partidas = input.required<Pick<Partida, 'id' | 'codigo'>[]>();
+  /** Residente asignado o admin: revisan los consumos atípicos (403, criterio 7). */
+  readonly puedeRevisarAtipicos = input(false);
 
   private readonly servicio = inject(ObrasService);
   private readonly destruir = inject(DestroyRef);

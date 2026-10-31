@@ -1,9 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AVISO_IA_NO_DISPONIBLE } from '../../nucleo/errores';
 import type { NivelRiesgo, RiesgoRetraso } from '../obras.graphql';
-
-/** Aviso cuando el servicio de IA no responde (402, criterio 12; docs/mensajes.md). */
-export const AVISO_IA_NO_DISPONIBLE = 'Datos de IA no disponibles';
 
 /** Porcentaje entero de una probabilidad de 0 a 1: `0.724` → `72 %`. */
 export function porcentajeRiesgo(probabilidad: number): string {

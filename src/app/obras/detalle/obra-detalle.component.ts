@@ -108,6 +108,11 @@ export class ObraDetalleComponent implements OnInit {
     const obra = this.obra();
     return obra?.estado === 'EN_EJECUCION' && esResidenteAsignado(obra, this.sesion.usuario());
   });
+  /** Consumos atípicos: los revisan el residente asignado y admin; gerente solo los ve (403, criterios 7 y 9). */
+  protected readonly puedeRevisarAtipicos = computed(() => {
+    const usuario = this.sesion.usuario();
+    return (usuario?.roles.includes('admin') ?? false) || esResidenteAsignado(this.obra(), usuario);
+  });
   protected readonly estadoFinanzas = signal<'sin-pedir' | 'cargando' | 'listo' | 'error'>(
     'sin-pedir',
   );

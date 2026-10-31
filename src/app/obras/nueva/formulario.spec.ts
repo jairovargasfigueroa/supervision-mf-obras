@@ -8,6 +8,7 @@ function formularioCompleto(): FormObra {
   formulario.controls.datos.setValue({
     nombre: 'Edificio Las Palmas',
     ubicacion: 'Av. Banzer 4to anillo, Santa Cruz',
+    zona: '',
     fechaInicio: '2026-11-01',
     residenteId: 'r1',
     maestroId: 'm1',
@@ -146,6 +147,20 @@ describe('formulario de «Nueva obra» (002, criterios 2 a 6)', () => {
       formulario.controls.partidas.at(0).patchValue({ cantidadContratada: 851 });
       expect(formulario.hasError('presupuesto')).toBe(true);
     });
+  });
+
+  it('la zona es opcional y empieza en «Sin zona» (401, criterio 1)', () => {
+    const fb = TestBed.inject(NonNullableFormBuilder);
+    expect(crearFormulario(fb).controls.datos.controls.zona.value).toBe('');
+    const formulario = formularioCompleto();
+    expect(formulario.controls.datos.controls.zona.valid).toBe(true);
+    expect(aEntrada(formulario)).not.toHaveProperty('zona');
+  });
+
+  it('aEntrada manda la zona elegida (401, criterio 1)', () => {
+    const formulario = formularioCompleto();
+    formulario.controls.datos.patchValue({ zona: 'NORTE' });
+    expect(aEntrada(formulario).zona).toBe('NORTE');
   });
 
   it('aEntrada arma RegistrarObraEntrada sin espacios de más y sin meses vacíos', () => {

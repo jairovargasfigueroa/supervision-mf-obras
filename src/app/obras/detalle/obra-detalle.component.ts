@@ -24,6 +24,7 @@ import {
   formatearMonto,
   formatearNumero,
   formatearPorcentaje,
+  formatearZona,
 } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
 import { esResidenteAsignado } from '../../planillas/nueva/planilla-nueva.component';
@@ -123,6 +124,7 @@ export class ObraDetalleComponent implements OnInit {
   protected readonly fecha = formatearFecha;
   protected readonly porcentaje = formatearPorcentaje;
   protected readonly numero = formatearNumero;
+  protected readonly zona = formatearZona;
   protected readonly ancho = anchoBarra;
   protected readonly esperando = esperandoContrato;
 

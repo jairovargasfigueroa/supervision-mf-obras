@@ -9,7 +9,7 @@ import {
   type ValidationErrors,
   type ValidatorFn,
 } from '@angular/forms';
-import type { RegistrarObraEntrada } from '../obras.graphql';
+import type { RegistrarObraEntrada, ZonaObra } from '../obras.graphql';
 import { resumirPresupuesto } from './presupuesto';
 
 // Formulario reactivo tipado de «Nueva obra» (002, criterios 2 a 6) y su conversión a RegistrarObraEntrada.
@@ -17,6 +17,8 @@ import { resumirPresupuesto } from './presupuesto';
 export type FormDatos = FormGroup<{
   nombre: FormControl<string>;
   ubicacion: FormControl<string>;
+  /** 401: opcional; '' = «Sin zona». */
+  zona: FormControl<ZonaObra | ''>;
   fechaInicio: FormControl<string>;
   residenteId: FormControl<string>;
   maestroId: FormControl<string>;
@@ -107,6 +109,7 @@ export function crearFormulario(fb: NonNullableFormBuilder): FormObra {
       datos: fb.group({
         nombre: fb.control('', [Validators.required, Validators.maxLength(150)]),
         ubicacion: fb.control('', [Validators.required, Validators.maxLength(200)]),
+        zona: fb.control<ZonaObra | ''>(''),
         fechaInicio: fb.control('', Validators.required),
         residenteId: fb.control('', Validators.required),
         maestroId: fb.control('', Validators.required),
@@ -129,12 +132,16 @@ export function crearFormulario(fb: NonNullableFormBuilder): FormObra {
   );
 }
 
-/** Valor del formulario (ya válido) → entrada de la mutación. Los textos van sin espacios de más; sin insumos (003). */
+/**
+ * Valor del formulario (ya válido) → entrada de la mutación. Los textos van sin espacios de más; sin insumos (003);
+ * la zona solo si se eligió (401).
+ */
 export function aEntrada(formulario: FormObra): RegistrarObraEntrada {
   const { datos, contrato, partidas } = formulario.getRawValue();
   return {
     nombre: datos.nombre.trim(),
     ubicacion: datos.ubicacion.trim(),
+    ...(datos.zona ? { zona: datos.zona } : {}),
     fechaInicio: datos.fechaInicio,
     asignaciones: {
       residenteId: datos.residenteId,

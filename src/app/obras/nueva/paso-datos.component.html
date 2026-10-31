@@ -16,6 +16,16 @@
   </mat-form-field>
 
   <mat-form-field>
+    <mat-label>Zona</mat-label>
+    <mat-select formControlName="zona">
+      <mat-option value="">Sin zona</mat-option>
+      @for (opcion of zonas; track opcion[0]) {
+        <mat-option [value]="opcion[0]">{{ opcion[1] }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field>
     <mat-label>Fecha de inicio</mat-label>
     <input matInput type="date" formControlName="fechaInicio" required />
     @if (grupo().controls.fechaInicio.invalid) {

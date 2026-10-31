@@ -3,7 +3,7 @@ import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { Router, provideRouter } from '@angular/router';
 import type { FormObra } from './formulario';
 import { of, throwError } from 'rxjs';
-import type { Rol, Usuario } from '../obras.graphql';
+import type { Rol, Usuario, ZonaObra } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
 import { ObraNuevaComponent } from './obra-nueva.component';
 
@@ -55,7 +55,21 @@ describe('ObraNuevaComponent', () => {
     const pasos = [...elemento.querySelectorAll('.mat-step-label')].map((paso) => paso.textContent?.trim());
     expect(pasos).toEqual(['Datos y asignaciones', 'Contrato', 'Presupuesto']);
     expect(usuarios.mock.calls.map(([rol]) => rol)).toEqual(['residente', 'maestro', 'almacenero', 'cliente']);
-    expect(elemento.querySelectorAll('mat-select')).toHaveLength(4);
+    // Zona (401) y las cuatro asignaciones
+    expect(elemento.querySelectorAll('mat-select')).toHaveLength(5);
+  });
+
+  it('el selector «Zona» ofrece «Sin zona» y las cinco zonas (401, criterio 1)', async () => {
+    sesionCon(['admin']);
+    const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]) });
+    const campo = [...elemento.querySelectorAll('mat-form-field')].find((f) =>
+      f.querySelector('mat-label')?.textContent?.includes('Zona'),
+    )!;
+    campo.querySelector<HTMLElement>('.mat-mdc-select-trigger')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const opciones = [...document.querySelectorAll('mat-option')].map((o) => o.textContent?.trim());
+    expect(opciones).toEqual(['Sin zona', 'Norte', 'Sur', 'Este', 'Oeste', 'Centro']);
   });
 
   it('no avanza al contrato con el paso 1 incompleto y muestra los errores', () => {
@@ -98,11 +112,16 @@ describe('ObraNuevaComponent', () => {
   });
 
   describe('guardar (criterios 6 y 7)', () => {
-    function completar(componente: { formulario: FormObra }, monto = 357425): void {
+    function completar(
+      componente: { formulario: FormObra },
+      monto = 357425,
+      zona: ZonaObra | '' = '',
+    ): void {
       const { datos, contrato, partidas } = componente.formulario.controls;
       datos.setValue({
         nombre: ' Edificio Las Palmas ',
         ubicacion: 'Santa Cruz',
+        zona,
         fechaInicio: '2026-11-01',
         residenteId: 'r1',
         maestroId: 'm1',
@@ -140,6 +159,17 @@ describe('ObraNuevaComponent', () => {
         partidas: [{ codigo: 'P-01', nombre: 'Losa', unidad: 'm2', cantidadContratada: 850, precioUnitario: 420.5 }],
       });
       expect(navegar.mock.calls[0][0]).toEqual(['..', 'b9']);
+    });
+
+    it('envía la zona elegida (401, criterio 1)', () => {
+      sesionCon(['admin']);
+      const registrar = vi.fn(() => of({ id: 'b9', estado: 'SIN_CONTRATO' as const }));
+      const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), registrar });
+      vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      completar(fixture.componentInstance as never, 357425, 'SUR');
+      fixture.detectChanges();
+      pulsarGuardar(elemento);
+      expect(registrar).toHaveBeenCalledWith(expect.objectContaining({ zona: 'SUR' }));
     });
 
     it('no envía si el presupuesto no coincide con el monto', () => {

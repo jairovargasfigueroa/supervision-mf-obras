@@ -11,14 +11,50 @@ export interface SesionPlataforma {
   usuario: UsuarioSesion;
   obtenerToken(): Promise<string>;
   cerrarSesion(): void;
+  /** 104: «modo sin conexión»; obtenerToken() rechaza con Error('SIN_CONEXION'). */
+  sinConexion?: boolean;
+}
+
+/** 104: estado de la conexión que decide el shell. */
+export interface ConexionPlataforma {
+  enLinea: boolean;
+  reportarFallo(): void;
+}
+
+/** 104: borrador de una planilla guardado en el equipo. */
+export interface BorradorPlanilla {
+  planillaId: string;
+  obraId: string;
+  numero: number;
+  periodo: string;
+  versionBase: number;
+  lineas: { partidaId: string; cantidadPeriodo: number }[];
+  fotoIds: string[];
+  guardadoEn: string;
+  estadoEnvio: 'PENDIENTE' | 'CONFLICTO' | 'NO_EDITABLE' | 'RECHAZADO';
+  ultimoError?: { codigo: string; mensaje: string; errores?: { campo: string; mensaje: string }[] };
+}
+
+/** 104: almacén local del shell (IndexedDB, separado por usuario). */
+export interface AlmacenPlataforma {
+  guardarConsulta(clave: string, datos: unknown): Promise<void>;
+  leerConsulta<T>(clave: string): Promise<{ datos: T; guardadoEn: string } | null>;
+  guardarBorradorPlanilla(borrador: BorradorPlanilla): Promise<void>;
+  leerBorradorPlanilla(planillaId: string): Promise<BorradorPlanilla | null>;
+  listarBorradoresPlanilla(): Promise<BorradorPlanilla[]>;
+  borrarBorradorPlanilla(planillaId: string): Promise<void>;
 }
 
 export interface Plataforma {
   sesion?: SesionPlataforma;
+  conexion?: ConexionPlataforma;
+  almacen?: AlmacenPlataforma;
   configuracion: { gatewayUrl: string };
 }
 
 export const EVENTO_SESION = 'plataforma:sesion';
+export const EVENTO_CONEXION = 'plataforma:conexion';
+export const EVENTO_BORRADORES = 'plataforma:borradores';
 
 declare global {
   interface Window {

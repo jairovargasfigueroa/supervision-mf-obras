@@ -4,7 +4,7 @@ Requisitos y diseño: `docs/specs/104-erp-pwa/` de la carpeta que agrupa los pro
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Servicio `consultaConRespaldo` y componente de aviso «Sin conexión · datos del …»
+- [x] Servicio `consultaConRespaldo` y componente de aviso «Sin conexión · datos del …»
 - [ ] Usarlo en la lista de obras, el detalle (encabezado y pestañas) y la planilla
 - [ ] Deshabilitar acciones de escritura sin conexión («Requiere conexión»)
 - [ ] Editor: guardar borrador local sin conexión o ante error de red; mostrar el borrador al abrir; «Presentar» deshabilitado con borrador

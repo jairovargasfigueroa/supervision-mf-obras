@@ -1,22 +1,57 @@
 import { TestBed } from '@angular/core/testing';
+import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { of, throwError, type Observable } from 'rxjs';
 import type { ComparacionMaterial, FilaComparacion, MaterialCorto } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
-import { PestanaMaterialComponent, cantidadMaterial, diferenciaMaterial } from './pestana-material.component';
+import {
+  PestanaMaterialComponent,
+  cantidadMaterial,
+  diferenciaMaterial,
+} from './pestana-material.component';
 
-const CEMENTO: MaterialCorto = { id: 'm1', codigo: 'CEM-01', nombre: 'Cemento IP-30', unidad: 'bolsa', unidadPlural: 'bolsas' };
-const FIERRO: MaterialCorto = { id: 'm2', codigo: 'ACE-12', nombre: 'Fierro 12 mm', unidad: 'kg', unidadPlural: 'kg' };
+const CEMENTO: MaterialCorto = {
+  id: 'm1',
+  codigo: 'CEM-01',
+  nombre: 'Cemento IP-30',
+  unidad: 'bolsa',
+  unidadPlural: 'bolsas',
+};
+const FIERRO: MaterialCorto = {
+  id: 'm2',
+  codigo: 'ACE-12',
+  nombre: 'Fierro 12 mm',
+  unidad: 'kg',
+  unidadPlural: 'kg',
+};
 
 const FILAS: FilaComparacion[] = [
-  { partidaId: 'p1', partidaCodigo: 'P-01', material: CEMENTO, previsto: 100, usado: 125, diferencia: 25, excedido: true },
-  { partidaId: 'p1', partidaCodigo: 'P-01', material: FIERRO, previsto: 200, usado: 180.5, diferencia: -19.5, excedido: false },
+  {
+    partidaId: 'p1',
+    partidaCodigo: 'P-01',
+    material: CEMENTO,
+    previsto: 100,
+    usado: 125,
+    diferencia: 25,
+    excedido: true,
+  },
+  {
+    partidaId: 'p1',
+    partidaCodigo: 'P-01',
+    material: FIERRO,
+    previsto: 200,
+    usado: 180.5,
+    diferencia: -19.5,
+    excedido: false,
+  },
 ];
 
-function montar(materialComparado: (id: string, periodo: string) => Observable<ComparacionMaterial | null>) {
+function montar(
+  materialComparado: (id: string, periodo: string) => Observable<ComparacionMaterial | null>,
+) {
   TestBed.configureTestingModule({
     imports: [PestanaMaterialComponent],
-    providers: [{ provide: ObrasService, useValue: { materialComparado } }],
+    providers: [{ provide: ObrasService, useValue: desdeLaRed({ materialComparado }) }],
   });
   const fixture = TestBed.createComponent(PestanaMaterialComponent);
   fixture.componentRef.setInput('obraId', 'b1');
@@ -42,21 +77,33 @@ describe('PestanaMaterialComponent', () => {
   });
 
   it('al abrirse pide el mes actual en La Paz y ofrece los meses desde el inicio de la obra (criterio 3)', async () => {
-    const materialComparado = vi.fn((_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: FILAS }));
+    const materialComparado = vi.fn((_id: string, periodo: string) =>
+      of({ periodo, hayPlanilla: true, filas: FILAS }),
+    );
     const { fixture } = montar(materialComparado);
     expect(materialComparado).toHaveBeenCalledExactlyOnceWith('b1', '2026-10');
-    const componente = fixture.componentInstance as unknown as { periodos(): string[]; periodo(): string };
+    const componente = fixture.componentInstance as unknown as {
+      periodos(): string[];
+      periodo(): string;
+    };
     expect(componente.periodos()).toEqual(['2026-10', '2026-09']);
     expect(componente.periodo()).toBe('2026-10');
     // mat-select marca la opción elegida en una microtarea después de crear sus opciones
     await fixture.whenStable();
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('mat-select')?.textContent).toContain('Octubre 2026');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('mat-select')?.textContent,
+    ).toContain('Octubre 2026');
 
-    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.mat-mdc-select-trigger')!.click();
+    (fixture.nativeElement as HTMLElement)
+      .querySelector<HTMLElement>('.mat-mdc-select-trigger')!
+      .click();
     fixture.detectChanges();
     const opciones = [...document.querySelectorAll<HTMLElement>('mat-option')];
-    expect(opciones.map((opcion) => opcion.textContent?.trim())).toEqual(['Octubre 2026', 'Septiembre 2026']);
+    expect(opciones.map((opcion) => opcion.textContent?.trim())).toEqual([
+      'Octubre 2026',
+      'Septiembre 2026',
+    ]);
     expect(opciones[0].getAttribute('aria-selected')).toBe('true');
 
     // Elegir otro periodo vuelve a pedir el material
@@ -70,7 +117,10 @@ describe('PestanaMaterialComponent', () => {
     const filas = [...elemento.querySelectorAll('tr.mat-mdc-row')];
     const textoCelda = (celda: Element) =>
       [...celda.querySelectorAll('span, mat-chip')].length
-        ? [celda.querySelector('span')!.textContent!.trim(), celda.querySelector('mat-chip')?.textContent?.trim()]
+        ? [
+            celda.querySelector('span')!.textContent!.trim(),
+            celda.querySelector('mat-chip')?.textContent?.trim(),
+          ]
             .filter(Boolean)
             .join(' ')
         : celda.textContent?.trim();
@@ -96,7 +146,9 @@ describe('PestanaMaterialComponent', () => {
   });
 
   it('al elegir otro periodo vuelve a pedir el material', () => {
-    const materialComparado = vi.fn((_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: FILAS }));
+    const materialComparado = vi.fn((_id: string, periodo: string) =>
+      of({ periodo, hayPlanilla: true, filas: FILAS }),
+    );
     const { fixture } = montar(materialComparado);
     (fixture.componentInstance as unknown as { elegir(periodo: string): void }).elegir('2026-09');
     expect(materialComparado).toHaveBeenLastCalledWith('b1', '2026-09');
@@ -106,7 +158,12 @@ describe('PestanaMaterialComponent', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new CombinedGraphQLErrors({
       data: null,
-      errors: [{ message: 'x', extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'materiales', estado: 503 } }],
+      errors: [
+        {
+          message: 'x',
+          extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'materiales', estado: 503 },
+        },
+      ],
     });
     const respuestas: Observable<ComparacionMaterial | null>[] = [
       throwError(() => error),

@@ -7,8 +7,13 @@
     Planilla
   </nav>
 
+  @if (guardadoEn(); as guardadoEn) {
+    <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+  }
   @if (!sesion.dentroDelErp()) {
     <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
+  } @else if (estado() === 'sin-datos') {
+    <app-aviso-sin-conexion />
   } @else if (estado() === 'cargando') {
     <p class="cargando">Cargando planilla…</p>
   } @else if (estado() === 'no-encontrada') {
@@ -27,12 +32,21 @@
       <span class="secundario">Periodo {{ nombrePeriodo(planilla.periodo) }}</span>
       <!-- 008, criterio 14: el número de cobro cuando la planilla está aprobada -->
       @if (planilla.cobro; as cobro) {
-        <span class="cobro">Cobro <strong class="sv-numero">{{ cobro.numero }}</strong></span>
+        <span class="cobro"
+          >Cobro <strong class="sv-numero">{{ cobro.numero }}</strong></span
+        >
       }
     </header>
 
     <!-- 007, criterio 9, y 008, criterio 14: la observación del cliente (o el motivo del fallo de la aprobación) se ve
          para corregir y volver a presentar -->
+    <!-- 104, criterio 12 -->
+    @if (borrador(); as borrador) {
+      <div class="aviso aviso-atencion" role="status">
+        Borrador local sin enviar (guardado {{ diaHora(borrador.guardadoEn) }})
+      </div>
+    }
+
     @if (planilla.estado === 'OBSERVADA' && planilla.observacion) {
       <div class="aviso aviso-error observacion" role="note">
         <strong>Observación</strong>
@@ -57,11 +71,15 @@
           </ng-container>
           <ng-container matColumnDef="cantidadContratada">
             <th mat-header-cell *matHeaderCellDef class="numero">Contratada</th>
-            <td mat-cell *matCellDef="let linea" class="numero sv-numero">{{ numero(linea.cantidadContratada) }}</td>
+            <td mat-cell *matCellDef="let linea" class="numero sv-numero">
+              {{ numero(linea.cantidadContratada) }}
+            </td>
           </ng-container>
           <ng-container matColumnDef="acumuladoAnterior">
             <th mat-header-cell *matHeaderCellDef class="numero">Acumulado anterior</th>
-            <td mat-cell *matCellDef="let linea" class="numero sv-numero">{{ numero(linea.acumuladoAnterior) }}</td>
+            <td mat-cell *matCellDef="let linea" class="numero sv-numero">
+              {{ numero(linea.acumuladoAnterior) }}
+            </td>
           </ng-container>
           <ng-container matColumnDef="cantidadPeriodo">
             <th mat-header-cell *matHeaderCellDef class="numero">Cantidad del periodo</th>
@@ -104,7 +122,11 @@
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-          <tr mat-row *matRowDef="let linea; columns: columnas; let i = index" [class.supera]="filas()[i]?.supera"></tr>
+          <tr
+            mat-row
+            *matRowDef="let linea; columns: columnas; let i = index"
+            [class.supera]="filas()[i]?.supera"
+          ></tr>
         </table>
       </div>
 
@@ -130,16 +152,35 @@
         <app-estado-error (reintentar)="cargarFotos()" />
       } @else if (fotosVisibles().length === 0) {
         <p class="secundario">
-          {{ editable() ? 'No hay fotos de avance registradas en este periodo.' : 'La planilla no tiene fotos adjuntas.' }}
+          {{
+            editable()
+              ? 'No hay fotos de avance registradas en este periodo.'
+              : 'La planilla no tiene fotos adjuntas.'
+          }}
         </p>
       } @else {
         <ul class="galeria">
           @for (foto of fotosVisibles(); track foto.id) {
             <li [class.elegida]="editable() && fotosElegidas().has(foto.id)">
               <figure>
-                <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
-                  <img [src]="foto.urlDescarga" loading="lazy" [alt]="'Foto del ' + fechaHora(foto.registradoEn)" />
-                </a>
+                @if (sinMiniaturas()) {
+                  <!-- 104: sin conexión los enlaces firmados vencen; recuadro en lugar de la miniatura -->
+                  <div
+                    class="recuadro"
+                    role="img"
+                    [attr.aria-label]="'Foto del ' + fechaHora(foto.registradoEn)"
+                  >
+                    <mat-icon fontSet="material-symbols-outlined">image</mat-icon>
+                  </div>
+                } @else {
+                  <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
+                    <img
+                      [src]="foto.urlDescarga"
+                      loading="lazy"
+                      [alt]="'Foto del ' + fechaHora(foto.registradoEn)"
+                    />
+                  </a>
+                }
                 <figcaption>
                   <span class="sv-numero">{{ fechaHora(foto.registradoEn) }}</span>
                   <span class="secundario">{{ foto.registradoPor?.nombre ?? '—' }}</span>
@@ -160,6 +201,9 @@
       }
     </section>
 
+    @if (avisoAccion()) {
+      <div class="aviso aviso-atencion" role="status">{{ avisoAccion() }}</div>
+    }
     @if (editable() && hayFilasQueSuperan()) {
       <div class="aviso aviso-error" role="alert">{{ mensajeFilasSuperan }}</div>
     } @else if (errorAccion()) {
@@ -176,15 +220,22 @@
         <button mat-stroked-button type="button" [disabled]="!puedeGuardar()" (click)="guardar()">
           {{ ocupado() === 'guardando' ? 'Guardando…' : 'Guardar' }}
         </button>
-        <button mat-flat-button type="button" [disabled]="!puedePresentar()" (click)="presentar()">
-          {{
-            ocupado() === 'presentando'
-              ? 'Presentando…'
-              : planilla.estado === 'OBSERVADA'
-                ? 'Volver a presentar'
-                : 'Presentar'
-          }}
-        </button>
+        <app-requiere-conexion>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="!puedePresentar()"
+            (click)="presentar()"
+          >
+            {{
+              ocupado() === 'presentando'
+                ? 'Presentando…'
+                : planilla.estado === 'OBSERVADA'
+                  ? 'Volver a presentar'
+                  : 'Presentar'
+            }}
+          </button>
+        </app-requiere-conexion>
       </div>
     }
   }

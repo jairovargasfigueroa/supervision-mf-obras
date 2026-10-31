@@ -1,15 +1,25 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of, switchMap, type Subscription } from 'rxjs';
 import { ETIQUETAS, EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, mensajeDeError, registrarError, type ErrorLeido } from '../../nucleo/errores';
 import {
@@ -18,13 +28,28 @@ import {
   formatearNumero,
   formatearPeriodo,
   formatearPorcentaje,
+  formatearDiaHora,
 } from '../../nucleo/formato';
-import { SesionService } from '../../nucleo/sesion.service';
+import { esFalloDeConexion } from '../../nucleo/respaldo.service';
+import {
+  EVENTO_BORRADORES,
+  SesionService,
+  type BorradorPlanilla,
+} from '../../nucleo/sesion.service';
+import { EnvioBorradoresService } from '../envio-borradores.service';
+import {
+  BorradorDialogoComponent,
+  type DatosBorradorDialogo,
+  type DecisionBorrador,
+} from './borrador-dialogo.component';
+import { MatDialog } from '@angular/material/dialog';
 import type { Foto } from '../../obras/obras.graphql';
 import { esResidenteAsignado } from '../nueva/planilla-nueva.component';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
 import { PlanillasService } from '../planillas.service';
 import { calcularLinea, calcularTotales, type LineaCalculada, type Totales } from './totales';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 /** Texto de la fila que supera lo contratado (criterio 5); el saldo es lo que todavía se puede medir. */
 export function mensajeSupera(saldoDisponible: number): string {
@@ -32,7 +57,11 @@ export function mensajeSupera(saldoDisponible: number): string {
 }
 
 /** Texto de arriba cuando hay filas que superan lo contratado (docs/mensajes.md, SUPERA_CANTIDAD_CONTRATADA). */
-export const MENSAJE_FILAS_SUPERAN = 'Hay filas que superan lo contratado. Corrígelas para guardar.';
+export const MENSAJE_FILAS_SUPERAN =
+  'Hay filas que superan lo contratado. Corrígelas para guardar.';
+
+/** 104, criterio 10. */
+export const GUARDADO_EN_EQUIPO = 'Guardado en este equipo; se enviará al volver la conexión';
 
 /**
  * Editor de la planilla (007, criterios 3 a 10): por partida, cantidad contratada, acumulado anterior, cantidad del
@@ -46,10 +75,13 @@ export const MENSAJE_FILAS_SUPERAN = 'Hay filas que superan lo contratado. Corr�
 @Component({
   selector: 'app-planilla-editor',
   imports: [
+    RequiereConexionComponent,
+    AvisoSinConexionComponent,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
     MatCheckboxModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatTableModule,
@@ -62,15 +94,23 @@ export const MENSAJE_FILAS_SUPERAN = 'Hay filas que superan lo contratado. Corr�
   styleUrls: ['../planillas.scss', './planilla-editor.component.scss'],
 })
 export class PlanillaEditorComponent implements OnInit {
+  protected readonly conexion = inject(ConexionService);
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(PlanillasService);
+  private readonly envio = inject(EnvioBorradoresService, { optional: true });
+  private readonly dialogos = inject(MatDialog);
+  private dialogoAbierto = false;
   private readonly ruta = inject(ActivatedRoute);
   private readonly destruir = inject(DestroyRef);
 
   /** Ruta de las rutas del microfrontend (/obras dentro del ERP): base de los enlaces. */
   protected readonly base = this.ruta.parent ?? null;
   private readonly id = signal('');
-  protected readonly estado = signal<'cargando' | 'listo' | 'no-encontrada' | 'error'>('cargando');
+  protected readonly estado = signal<
+    'cargando' | 'listo' | 'no-encontrada' | 'error' | 'sin-datos'
+  >('cargando');
+  /** Fecha de la planilla guardada en el equipo cuando se muestra sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly mensajeCarga = signal('');
   protected readonly planilla = signal<Planilla | null>(null);
   protected readonly obra = signal<ObraDePlanilla | null>(null);
@@ -128,10 +168,18 @@ export class PlanillaEditorComponent implements OnInit {
   /** Fotos de avance de la obra registradas dentro del periodo (criterio 6). */
   protected readonly fotos = signal<Foto[]>([]);
   protected readonly estadoFotos = signal<'cargando' | 'listo' | 'error'>('cargando');
+  /** Las fotos vienen del equipo: sus enlaces firmados pudieron vencer. */
+  private readonly fotosDesdeEquipo = signal(false);
+  /** 104: sin conexión la galería muestra un recuadro con la fecha en lugar de la miniatura. */
+  protected readonly sinMiniaturas = computed(
+    () => !this.conexion.enLinea() || this.fotosDesdeEquipo(),
+  );
   protected readonly fotosElegidas = signal<ReadonlySet<string>>(new Set());
   /** En edición, toda la galería del periodo para elegir; en lectura, solo las adjuntas. */
   protected readonly fotosVisibles = computed(() =>
-    this.editable() ? this.fotos() : this.fotos().filter((foto) => this.fotosElegidas().has(foto.id)),
+    this.editable()
+      ? this.fotos()
+      : this.fotos().filter((foto) => this.fotosElegidas().has(foto.id)),
   );
 
   protected readonly hayFilasQueSuperan = computed(() => this.filas().some((fila) => fila.supera));
@@ -163,9 +211,17 @@ export class PlanillaEditorComponent implements OnInit {
       !this.hayFilasQueSuperan() &&
       this.cantidadesValidas() &&
       (this.totales()?.subtotal ?? 0) > 0 &&
-      this.ocupado() === null,
+      this.ocupado() === null &&
+      // 104, criterio 17: «Presentar» requiere conexión y no hay un borrador local sin enviar
+      this.conexion.enLinea() &&
+      !this.borrador(),
   );
   protected readonly errorAccion = signal('');
+  /** «Guardado en este equipo; se enviará al volver la conexión» (104, criterio 10). */
+  protected readonly avisoAccion = signal('');
+  /** Borrador de esta planilla guardado en el equipo y todavía sin enviar (104, criterio 12). */
+  protected readonly borrador = signal<BorradorPlanilla | null>(null);
+  protected readonly diaHora = formatearDiaHora;
   /** Otra persona guardó la planilla antes: se ofrece «Recargar» (criterio 7). */
   protected readonly versionDesactualizada = signal(false);
 
@@ -196,6 +252,12 @@ export class PlanillaEditorComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // 104: el envío automático cambió o borró el borrador de esta planilla (enviado, conflicto, rechazado)
+    const alCambiarBorradores = () => void this.revisarBorrador();
+    window.addEventListener(EVENTO_BORRADORES, alCambiarBorradores);
+    this.destruir.onDestroy(() =>
+      window.removeEventListener(EVENTO_BORRADORES, alCambiarBorradores),
+    );
     this.ruta.paramMap.pipe(takeUntilDestroyed(this.destruir)).subscribe((parametros) => {
       this.id.set(parametros.get('id') ?? '');
       if (this.sesion.dentroDelErp()) this.cargar();
@@ -214,18 +276,30 @@ export class PlanillaEditorComponent implements OnInit {
     this.consulta = this.servicio
       .obtener(this.id())
       .pipe(
-        switchMap((planilla) =>
-          planilla
-            ? this.servicio.obra(planilla.obraId).pipe(map((obra) => ({ planilla, obra })))
-            : of({ planilla: null, obra: null }),
+        switchMap((respuesta) =>
+          respuesta?.datos
+            ? this.servicio.obra(respuesta.datos.obraId).pipe(map((obra) => ({ respuesta, obra })))
+            : of({ respuesta, obra: null }),
         ),
         takeUntilDestroyed(this.destruir),
       )
       .subscribe({
-        next: ({ planilla, obra }) => {
+        next: ({ respuesta, obra: respuestaObra }) => {
+          // Sin conexión y la planilla (o su obra) nunca se abrió en este equipo (104)
+          if (!respuesta || (respuesta.datos && !respuestaObra)) {
+            this.guardadoEn.set(null);
+            this.estado.set('sin-datos');
+            return;
+          }
+          const planilla = respuesta.datos;
+          const obra = respuestaObra?.datos ?? null;
+          this.guardadoEn.set(respuesta.guardadoEn);
           this.obra.set(obra);
+          this.borrador.set(null);
+          this.avisoAccion.set('');
           if (planilla) {
             this.aplicar(planilla);
+            void this.leerBorrador(planilla);
             this.cargarFotos();
             if (aviso) this.errorAccion.set(aviso(planilla));
           }
@@ -235,7 +309,11 @@ export class PlanillaEditorComponent implements OnInit {
           const leido = leerError(error);
           registrarError('planilla', leido);
           this.mensajeCarga.set(mensajeDeError(leido));
-          this.estado.set(leido.estado === 404 || leido.codigo === 'OBRA_NO_ENCONTRADA' ? 'no-encontrada' : 'error');
+          this.estado.set(
+            leido.estado === 404 || leido.codigo === 'OBRA_NO_ENCONTRADA'
+              ? 'no-encontrada'
+              : 'error',
+          );
         },
       });
   }
@@ -250,9 +328,10 @@ export class PlanillaEditorComponent implements OnInit {
       .fotosDelPeriodo(planilla.obraId, planilla.periodo)
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (fotos) => {
-          this.fotos.set(fotos);
-          this.estadoFotos.set('listo');
+        next: (respuesta) => {
+          this.fotos.set(respuesta?.datos ?? []);
+          this.fotosDesdeEquipo.set(respuesta?.desdeEquipo ?? false);
+          this.estadoFotos.set(respuesta ? 'listo' : 'error');
         },
         error: (error: unknown) => {
           registrarError('fotos del periodo', leerError(error));
@@ -275,13 +354,89 @@ export class PlanillaEditorComponent implements OnInit {
     const planilla = this.planilla();
     if (!planilla || !this.puedeGuardar()) return;
     this.empezar('guardando');
+    // 104, criterio 10: sin conexión el borrador se guarda en el equipo
+    if (!this.conexion.enLinea() && window.plataforma?.almacen) {
+      void this.guardarEnEquipo(planilla);
+      return;
+    }
     this.servicio.guardar(planilla.id, this.entrada(planilla)).subscribe({
       next: (guardada) => {
         this.aplicar(guardada);
         this.ocupado.set(null);
+        // Lo guardado en el servidor reemplaza al borrador local
+        if (this.borrador()) {
+          this.borrador.set(null);
+          void window.plataforma?.almacen?.borrarBorradorPlanilla(guardada.id);
+        }
       },
-      error: (error: unknown) => this.fallo('guardarPlanilla', error),
+      error: (error: unknown) => {
+        if (esFalloDeConexion(error) && window.plataforma?.almacen) {
+          this.conexion.reportarFallo();
+          void this.guardarEnEquipo(planilla);
+          return;
+        }
+        this.fallo('guardarPlanilla', error);
+      },
     });
+  }
+
+  /** Guarda las cantidades y las fotos elegidas como borrador local `PENDIENTE` (104, criterio 10). */
+  private async guardarEnEquipo(planilla: Planilla): Promise<void> {
+    const entrada = this.entrada(planilla);
+    const borrador: BorradorPlanilla = {
+      planillaId: planilla.id,
+      obraId: planilla.obraId,
+      numero: planilla.numero,
+      periodo: planilla.periodo,
+      versionBase: planilla.version,
+      lineas: entrada.lineas,
+      fotoIds: entrada.fotoIds,
+      guardadoEn: new Date().toISOString(),
+      estadoEnvio: 'PENDIENTE',
+    };
+    try {
+      await window.plataforma!.almacen!.guardarBorradorPlanilla(borrador);
+      this.borrador.set(borrador);
+      this.superanEnServidor.set(new Set());
+      this.avisoAccion.set(GUARDADO_EN_EQUIPO);
+    } catch (error) {
+      console.error('[mf-obras] No se pudo guardar el borrador en el equipo', error);
+      this.errorAccion.set(mensajeDeError(leerError(error)));
+    } finally {
+      this.ocupado.set(null);
+    }
+  }
+
+  /**
+   * Si hay un borrador local de esta planilla, muestra sus cantidades y fotos (104, criterio 12). Uno rechazado por
+   * una regla marca las filas con los errores que devolvió Obras (criterio 16).
+   */
+  private async leerBorrador(planilla: Planilla): Promise<void> {
+    const borrador = await window.plataforma?.almacen
+      ?.leerBorradorPlanilla(planilla.id)
+      .catch(() => null);
+    if (!borrador || this.planilla()?.id !== planilla.id) return;
+    this.borrador.set(borrador);
+    if (borrador.estadoEnvio === 'CONFLICTO' || borrador.estadoEnvio === 'NO_EDITABLE') {
+      this.decidirBorrador(borrador, planilla);
+    }
+    if (!this.editable()) return;
+    const porPartida = new Map(
+      borrador.lineas.map((linea) => [linea.partidaId, linea.cantidadPeriodo]),
+    );
+    planilla.lineas.forEach((linea, i) => {
+      if (porPartida.has(linea.partidaId)) {
+        this.cantidades.at(i).setValue(porPartida.get(linea.partidaId)!, { emitEvent: false });
+      }
+    });
+    this.fotosElegidas.set(new Set(borrador.fotoIds));
+    this.leerCantidades(false);
+    if (borrador.estadoEnvio === 'RECHAZADO' && borrador.ultimoError) {
+      this.superanEnServidor.set(
+        new Set((borrador.ultimoError.errores ?? []).map((errorCampo) => errorCampo.campo)),
+      );
+      this.errorAccion.set(borrador.ultimoError.mensaje);
+    }
   }
 
   /** «Presentar» (criterio 8): con cambios sin guardar, primero los guarda; luego presenta con la versión nueva. */
@@ -289,7 +444,9 @@ export class PlanillaEditorComponent implements OnInit {
     const planilla = this.planilla();
     if (!planilla || !this.puedePresentar()) return;
     this.empezar('presentando');
-    const guardada = this.modificada() ? this.servicio.guardar(planilla.id, this.entrada(planilla)) : of(planilla);
+    const guardada = this.modificada()
+      ? this.servicio.guardar(planilla.id, this.entrada(planilla))
+      : of(planilla);
     guardada
       .pipe(
         switchMap((actual) => {
@@ -306,9 +463,62 @@ export class PlanillaEditorComponent implements OnInit {
       });
   }
 
+  /** Si el borrador de esta planilla cambió fuera del editor, vuelve a cargarla para mostrar su estado. */
+  private async revisarBorrador(): Promise<void> {
+    const planilla = this.planilla();
+    const almacen = window.plataforma?.almacen;
+    // Los cambios que hace el propio editor (guardar) no recargan
+    if (!planilla || !almacen || this.ocupado() !== null || this.dialogoAbierto) return;
+    const actual = await almacen.leerBorradorPlanilla(planilla.id).catch(() => null);
+    if ((actual?.estadoEnvio ?? null) !== (this.borrador()?.estadoEnvio ?? null)) {
+      this.cargar();
+    }
+  }
+
+  /**
+   * CONFLICTO: «Aplicar mi borrador sobre la última versión» o «Descartar mi borrador» (criterio 14); NO_EDITABLE:
+   * solo «Descartar mi borrador» (criterio 15). Luego vuelve a cargar la planilla.
+   */
+  private decidirBorrador(borrador: BorradorPlanilla, planilla: Planilla): void {
+    if (this.dialogoAbierto) return;
+    this.dialogoAbierto = true;
+    const datos: DatosBorradorDialogo =
+      borrador.estadoEnvio === 'CONFLICTO'
+        ? { tipo: 'CONFLICTO' }
+        : {
+            tipo: 'NO_EDITABLE',
+            mensaje: mensajeDeError(
+              {
+                codigo: 'PLANILLA_NO_EDITABLE',
+                estado: 409,
+                servicio: null,
+                errores: [],
+                red: false,
+              },
+              { estado: ETIQUETAS[planilla.estado] },
+            ),
+          };
+    this.dialogos
+      .open<BorradorDialogoComponent, DatosBorradorDialogo, DecisionBorrador>(
+        BorradorDialogoComponent,
+        { data: datos, disableClose: true },
+      )
+      .afterClosed()
+      .subscribe(async (decision) => {
+        if (decision === 'aplicar' && this.envio) {
+          await this.envio.aplicarSobreUltimaVersion(borrador.planillaId);
+        } else if (decision === 'descartar') {
+          await window.plataforma?.almacen?.borrarBorradorPlanilla(borrador.planillaId);
+        }
+        this.dialogoAbierto = false;
+        this.cargar();
+      });
+  }
+
   private empezar(accion: 'guardando' | 'presentando'): void {
     this.ocupado.set(accion);
     this.errorAccion.set('');
+    this.avisoAccion.set('');
     this.versionDesactualizada.set(false);
   }
 
@@ -349,9 +559,12 @@ export class PlanillaEditorComponent implements OnInit {
     this.superanEnServidor.set(new Set());
     this.cantidades.clear({ emitEvent: false });
     for (const linea of planilla.lineas) {
-      this.cantidades.push(new FormControl<number | null>(linea.cantidadPeriodo, Validators.min(0)), {
-        emitEvent: false,
-      });
+      this.cantidades.push(
+        new FormControl<number | null>(linea.cantidadPeriodo, Validators.min(0)),
+        {
+          emitEvent: false,
+        },
+      );
     }
     this.leerCantidades(false);
   }

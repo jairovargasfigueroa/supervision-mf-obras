@@ -29,7 +29,9 @@
         />
         <div class="acciones">
           <a mat-button routerLink="..">Cancelar</a>
-          <button mat-flat-button type="button" (click)="siguiente('datos')">Siguiente: contrato</button>
+          <button mat-flat-button type="button" (click)="siguiente('datos')">
+            Siguiente: contrato
+          </button>
         </div>
       </mat-step>
 
@@ -37,20 +39,33 @@
         <app-paso-contrato [grupo]="formulario.controls.contrato" />
         <div class="acciones">
           <button mat-button type="button" matStepperPrevious>Atrás</button>
-          <button mat-flat-button type="button" (click)="siguiente('contrato')">Siguiente: presupuesto</button>
+          <button mat-flat-button type="button" (click)="siguiente('contrato')">
+            Siguiente: presupuesto
+          </button>
         </div>
       </mat-step>
 
       <mat-step label="Presupuesto">
         <app-paso-presupuesto [partidas]="formulario.controls.partidas" [total]="resumen().total" />
-        @if (mensajePresupuesto() && (formulario.controls.partidas.touched || resumen().total > 0)) {
+        @if (
+          mensajePresupuesto() && (formulario.controls.partidas.touched || resumen().total > 0)
+        ) {
           <div class="aviso aviso-error" role="alert">{{ mensajePresupuesto() }}</div>
         }
         <div class="acciones">
-          <button mat-button type="button" matStepperPrevious [disabled]="guardando()">Atrás</button>
-          <button mat-flat-button type="button" (click)="guardar()" [disabled]="guardando()">
-            {{ guardando() ? 'Guardando…' : 'Guardar obra' }}
+          <button mat-button type="button" matStepperPrevious [disabled]="guardando()">
+            Atrás
           </button>
+          <app-requiere-conexion>
+            <button
+              mat-flat-button
+              type="button"
+              (click)="guardar()"
+              [disabled]="guardando() || !conexion.enLinea()"
+            >
+              {{ guardando() ? 'Guardando…' : 'Guardar obra' }}
+            </button>
+          </app-requiere-conexion>
         </div>
       </mat-step>
     </mat-stepper>

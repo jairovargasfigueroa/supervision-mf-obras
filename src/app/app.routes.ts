@@ -1,4 +1,8 @@
-import { MAT_FORM_FIELD_DEFAULT_OPTIONS, type MatFormFieldDefaultOptions } from '@angular/material/form-field';
+import {
+  MAT_FORM_FIELD_DEFAULT_OPTIONS,
+  type MatFormFieldDefaultOptions,
+} from '@angular/material/form-field';
+import { inject, provideEnvironmentInitializer } from '@angular/core';
 import { Routes } from '@angular/router';
 import { provideGraphql } from './nucleo/graphql.config';
 import { ObraDetalleComponent } from './obras/detalle/obra-detalle.component';
@@ -7,6 +11,7 @@ import { ObraNuevaComponent } from './obras/nueva/obra-nueva.component';
 import { ObrasService } from './obras/obras.service';
 import { PlanillaEditorComponent } from './planillas/editor/planilla-editor.component';
 import { PlanillaNuevaComponent } from './planillas/nueva/planilla-nueva.component';
+import { EnvioBorradoresService } from './planillas/envio-borradores.service';
 import { PlanillasService } from './planillas/planillas.service';
 
 // Rutas expuestas al shell como ./Routes (se montan bajo /obras) y usadas también al desarrollar solo en el 4201.
@@ -18,6 +23,9 @@ export const routes: Routes = [
       provideGraphql(),
       ObrasService,
       PlanillasService,
+      // 104: envía los borradores de planilla guardados en el equipo al volver la conexión
+      EnvioBorradoresService,
+      provideEnvironmentInitializer(() => inject(EnvioBorradoresService).iniciar()),
       // Con la densidad -2 del ERP, el campo «fill» oculta su etiqueta; «outline» la conserva
       {
         provide: MAT_FORM_FIELD_DEFAULT_OPTIONS,

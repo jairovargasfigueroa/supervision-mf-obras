@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -6,6 +14,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap, take, takeWhile, timer, type Subscription } from 'rxjs';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
@@ -61,6 +70,7 @@ export function anchoBarra(porcentaje: number): number {
     PestanaFotosComponent,
     PestanaPlanillasComponent,
     PestanaCobrosComponent,
+    AvisoSinConexionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './obra-detalle.component.html',
@@ -75,7 +85,11 @@ export class ObraDetalleComponent implements OnInit {
   /** Parámetro :id de la ruta (el shell no usa withComponentInputBinding: se lee de ActivatedRoute). */
   protected readonly id = signal('');
 
-  protected readonly estado = signal<'cargando' | 'listo' | 'no-encontrada' | 'error'>('cargando');
+  protected readonly estado = signal<
+    'cargando' | 'listo' | 'no-encontrada' | 'error' | 'sin-datos'
+  >('cargando');
+  /** Fecha de los datos guardados en el equipo cuando se muestran sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly obra = signal<Obra | null>(null);
   /** Se pasó el tiempo máximo de espera sin que cambie el estado. */
   protected readonly esperaAgotada = signal(false);
@@ -91,7 +105,9 @@ export class ObraDetalleComponent implements OnInit {
     const obra = this.obra();
     return obra?.estado === 'EN_EJECUCION' && esResidenteAsignado(obra, this.sesion.usuario());
   });
-  protected readonly estadoFinanzas = signal<'sin-pedir' | 'cargando' | 'listo' | 'error'>('sin-pedir');
+  protected readonly estadoFinanzas = signal<'sin-pedir' | 'cargando' | 'listo' | 'error'>(
+    'sin-pedir',
+  );
   protected readonly finanzas = signal<FinanzasObra | null>(null);
 
   protected readonly columnas = [
@@ -135,16 +151,26 @@ export class ObraDetalleComponent implements OnInit {
       .pipe(
         take(intentos),
         switchMap(() => this.servicio.obtener(this.id())),
-        takeWhile((obra) => esperandoContrato(obra), true),
+        takeWhile((respuesta) => esperandoContrato(respuesta?.datos ?? null), true),
         takeUntilDestroyed(this.destruir),
       )
       .subscribe({
-        next: (obra) => {
+        next: (respuesta) => {
+          this.guardadoEn.set(respuesta?.guardadoEn ?? null);
+          if (!respuesta) {
+            this.estado.set('sin-datos');
+            return;
+          }
+          const obra = respuesta.datos;
           ultima = obra;
           this.obra.set(obra);
           this.estado.set(obra ? 'listo' : 'no-encontrada');
           // Finanzas tiene el contrato solo después de registrarlo (ContratoRegistrado)
-          if (obra?.contrato.contratoId && this.veFinanzas() && this.estadoFinanzas() === 'sin-pedir') {
+          if (
+            obra?.contrato.contratoId &&
+            this.veFinanzas() &&
+            this.estadoFinanzas() === 'sin-pedir'
+          ) {
             this.cargarFinanzas();
           }
         },
@@ -166,9 +192,10 @@ export class ObraDetalleComponent implements OnInit {
       .finanzas(this.id())
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (finanzas) => {
-          this.finanzas.set(finanzas);
-          this.estadoFinanzas.set('listo');
+        next: (respuesta) => {
+          this.finanzas.set(respuesta?.datos ?? null);
+          // Sin conexión y sin datos guardados: «No disponible por el momento», como si Finanzas no respondiera
+          this.estadoFinanzas.set(respuesta ? 'listo' : 'error');
         },
         error: (error: unknown) => {
           registrarError('finanzas', leerError(error));

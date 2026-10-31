@@ -15,6 +15,8 @@ import { PasoContratoComponent } from './paso-contrato.component';
 import { PasoDatosComponent, type UsuariosPorRol } from './paso-datos.component';
 import { PasoPresupuestoComponent } from './paso-presupuesto.component';
 import { resumirPresupuesto } from './presupuesto';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 const SIN_USUARIOS: UsuariosPorRol = { residente: [], maestro: [], almacenero: [], cliente: [] };
 
@@ -22,6 +24,7 @@ const SIN_USUARIOS: UsuariosPorRol = { residente: [], maestro: [], almacenero: [
 @Component({
   selector: 'app-obra-nueva',
   imports: [
+    RequiereConexionComponent,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
@@ -36,6 +39,7 @@ const SIN_USUARIOS: UsuariosPorRol = { residente: [], maestro: [], almacenero: [
   styleUrl: './obra-nueva.component.scss',
 })
 export class ObraNuevaComponent implements OnInit {
+  protected readonly conexion = inject(ConexionService);
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(ObrasService);
   private readonly router = inject(Router);

@@ -2,10 +2,12 @@
   <header class="titulo">
     <h1>Obras</h1>
     @if (sesion.dentroDelErp() && esAdmin()) {
-      <a mat-flat-button routerLink="nueva">
-        <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
-        Nueva obra
-      </a>
+      <app-requiere-conexion>
+        <a mat-flat-button routerLink="nueva" [disabled]="!conexion.enLinea()">
+          <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+          Nueva obra
+        </a>
+      </app-requiere-conexion>
     }
   </header>
 
@@ -29,8 +31,13 @@
       </mat-form-field>
     </div>
 
+    @if (guardadoEn(); as guardadoEn) {
+      <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+    }
     @if (estado() === 'cargando') {
       <p class="cargando">Cargando obras…</p>
+    } @else if (estado() === 'sin-datos') {
+      <app-aviso-sin-conexion />
     } @else if (estado() === 'error') {
       <app-estado-error (reintentar)="cargar()" />
     } @else if (obras().length === 0 && conFiltros()) {
@@ -44,7 +51,7 @@
       <app-estado-vacio
         texto="Aún no hay obras."
         icono="apartment"
-        [accion]="esAdmin() ? 'Registrar obra' : undefined"
+        [accion]="esAdmin() && conexion.enLinea() ? 'Registrar obra' : undefined"
         (pulsado)="registrar()"
       />
     } @else {
@@ -56,7 +63,8 @@
                 <strong>{{ obra.nombre }}</strong>
                 <span class="secundario">{{ obra.ubicacion }}</span>
                 <span class="indicadores">
-                  Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }} · Plazo transcurrido
+                  Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }} ·
+                  Plazo transcurrido
                   {{ porcentaje(obra.plazoPct) }}
                 </span>
               </span>

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
@@ -18,7 +19,10 @@ const OBRA: ObraDePlanilla = {
 };
 
 const errorGraphql = (codigo: string, estado: number) =>
-  new CombinedGraphQLErrors({ data: null, errors: [{ message: 'x', extensions: { codigo, estado, servicio: 'obras' } }] });
+  new CombinedGraphQLErrors({
+    data: null,
+    errors: [{ message: 'x', extensions: { codigo, estado, servicio: 'obras' } }],
+  });
 
 interface Opciones {
   usuario?: { id: string; roles: string[] };
@@ -43,9 +47,21 @@ function montar(opciones: Opciones = {}) {
     imports: [PlanillaNuevaComponent],
     providers: [
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'b1' })), parent: null } },
-      { provide: PlanillasService, useValue: { obra: () => of(opciones.obra === undefined ? OBRA : opciones.obra), crear } },
-      { provide: ObrasService, useValue: { planillas: () => of(opciones.planillas ?? []) } },
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of(convertToParamMap({ id: 'b1' })), parent: null },
+      },
+      {
+        provide: PlanillasService,
+        useValue: desdeLaRed({
+          obra: () => of(opciones.obra === undefined ? OBRA : opciones.obra),
+          crear,
+        }),
+      },
+      {
+        provide: ObrasService,
+        useValue: desdeLaRed({ planillas: () => of(opciones.planillas ?? []) }),
+      },
     ],
   });
   const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
@@ -53,7 +69,9 @@ function montar(opciones: Opciones = {}) {
   fixture.detectChanges();
   const elemento = fixture.nativeElement as HTMLElement;
   const pulsarCrear = () => {
-    [...elemento.querySelectorAll('button')].find((b) => b.textContent?.includes('Crear planilla'))!.click();
+    [...elemento.querySelectorAll('button')]
+      .find((b) => b.textContent?.includes('Crear planilla'))!
+      .click();
     fixture.detectChanges();
   };
   return { fixture, elemento, crear, navegar, pulsarCrear };
@@ -64,7 +82,9 @@ describe('esResidenteAsignado', () => {
     expect(esResidenteAsignado(OBRA, { id: 'r1', roles: ['residente'] })).toBe(true);
     expect(esResidenteAsignado(OBRA, { id: 'r2', roles: ['residente'] })).toBe(false);
     expect(esResidenteAsignado(OBRA, { id: 'r1', roles: ['admin'] })).toBe(false);
-    expect(esResidenteAsignado({ residente: null }, { id: 'r1', roles: ['residente'] })).toBe(false);
+    expect(esResidenteAsignado({ residente: null }, { id: 'r1', roles: ['residente'] })).toBe(
+      false,
+    );
   });
 });
 
@@ -79,7 +99,9 @@ describe('PlanillaNuevaComponent', () => {
   });
 
   it('ofrece los meses desde el inicio de la obra hasta el actual', () => {
-    const { fixture, elemento } = montar({ obra: { ...OBRA, fechaInicio: `${periodoActual()}-01` } });
+    const { fixture, elemento } = montar({
+      obra: { ...OBRA, fechaInicio: `${periodoActual()}-01` },
+    });
     elemento.querySelector<HTMLElement>('mat-select')!.click();
     fixture.detectChanges();
     expect(document.querySelectorAll('mat-option').length).toBe(1);
@@ -93,16 +115,34 @@ describe('PlanillaNuevaComponent', () => {
     ];
     const { elemento, pulsarCrear } = montar({
       planillas: [
-        { id: 'pl1', numero: 1, periodo: '2026-08', estado: 'APROBADA', neto: 1, cobroNumero: 'COB-2026-0001' },
-        { id: 'pl2', numero: 2, periodo: '2026-09', estado: 'APROBADA', neto: 1, cobroNumero: 'COB-2026-0002' },
+        {
+          id: 'pl1',
+          numero: 1,
+          periodo: '2026-08',
+          estado: 'APROBADA',
+          neto: 1,
+          cobroNumero: 'COB-2026-0001',
+        },
+        {
+          id: 'pl2',
+          numero: 2,
+          periodo: '2026-09',
+          estado: 'APROBADA',
+          neto: 1,
+          cobroNumero: 'COB-2026-0002',
+        },
       ],
       crear: () => throwError(() => respuestas.shift()),
     });
     const aviso = () => elemento.querySelector('[role="alert"]')?.textContent?.trim();
     pulsarCrear();
-    expect(aviso()).toBe('Ya hay una planilla sin aprobar en esta obra. Termínala antes de crear otra.');
+    expect(aviso()).toBe(
+      'Ya hay una planilla sin aprobar en esta obra. Termínala antes de crear otra.',
+    );
     pulsarCrear();
-    expect(aviso()).toBe('El periodo debe ser posterior al de la última planilla (Septiembre 2026).');
+    expect(aviso()).toBe(
+      'El periodo debe ser posterior al de la última planilla (Septiembre 2026).',
+    );
     pulsarCrear();
     expect(aviso()).toBe('No se puede crear la planilla de un mes que todavía no llegó.');
   });

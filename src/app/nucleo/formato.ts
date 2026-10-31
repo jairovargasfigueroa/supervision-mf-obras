@@ -71,3 +71,17 @@ export function formatearPeriodo(periodo: string): string {
 export function formatearFechaHora(instante: string): string {
   return fechasHoras.format(new Date(instante)).replace(', ', ' ');
 }
+
+const diasHoras = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: ZONA_NEGOCIO,
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** `15/11 14:30` en hora de La Paz (borrador local de la 104). */
+export function formatearDiaHora(instante: string): string {
+  return diasHoras.format(new Date(instante)).replace(', ', ' ');
+}

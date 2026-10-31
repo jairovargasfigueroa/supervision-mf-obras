@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/testing';
+import { print } from 'graphql';
 import { firstValueFrom } from 'rxjs';
 import { CONSULTA_MATERIAL_COMPARADO, CONSULTA_OBRA, CONSULTA_OBRAS } from './obras.graphql';
 import { instalarPlataformaFalsa, type PlataformaFalsa } from '../nucleo/plataforma-falsa';
@@ -74,6 +75,25 @@ describe('ObrasService', () => {
     expect(obra?.nombre).toBe('Edificio Las Palmas');
     expect(obra?.residente?.nombre).toBe('Rosa Vaca');
     expect(obra?.maestro).toBeNull();
+  });
+
+  it('obtener pide el riesgo del modelo y, si IA no responde, entrega la obra con el riesgo en null (402, criterio 12)', async () => {
+    const respuesta = firstValueFrom(servicio.obtener('b1'));
+    const operacion = gateway.expectOne(CONSULTA_OBRA);
+    expect(print(operacion.operation.query)).toContain('riesgoRetraso');
+    operacion.flush({
+      data: { obra: obraDelGateway({ zona: null, riesgoRetraso: null }) },
+      errors: [
+        {
+          message: 'IA no responde',
+          path: ['obra', 'riesgoRetraso'],
+          extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'ia', estado: 503 },
+        },
+      ],
+    });
+    const obra = (await respuesta)?.datos;
+    expect(obra?.nombre).toBe('Edificio Las Palmas');
+    expect(obra?.riesgoRetraso).toBeNull();
   });
 
   it('obtener entrega el error cuando la obra no llega (OBRA_NO_ENCONTRADA, criterio 6)', async () => {

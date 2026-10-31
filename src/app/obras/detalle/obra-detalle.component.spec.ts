@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { MatTooltip } from '@angular/material/tooltip';
 import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -23,6 +25,13 @@ const OBRA: Obra = {
   avancePct: 0,
   plazoPct: 0,
   enRiesgo: false,
+  riesgoRetraso: {
+    probabilidad: null,
+    nivel: 'SIN_DATOS',
+    factores: [],
+    versionModelo: null,
+    calculadaEn: null,
+  },
   partidas: [
     {
       id: 'p1',
@@ -49,6 +58,21 @@ const EN_EJECUCION: Obra = {
   avancePct: 20,
   plazoPct: 32.5,
   enRiesgo: true,
+  riesgoRetraso: {
+    probabilidad: 0.7234,
+    nivel: 'ALTO',
+    factores: [
+      {
+        variable: 'relacion_ritmo',
+        descripcion:
+          'El ritmo de avance de los últimos meses es menor al necesario para terminar a tiempo',
+        peso: 0.81,
+      },
+      { variable: 'brecha', descripcion: 'El avance está 12,5 puntos por debajo del plazo transcurrido', peso: 0.4 },
+    ],
+    versionModelo: 'rr-1.0.0',
+    calculadaEn: '2026-11-15T05:00:00Z',
+  },
   partidas: [{ ...OBRA.partidas[0], ejecutadaAcumulada: 212.5, avancePct: 25 }],
 };
 
@@ -292,6 +316,39 @@ describe('ObraDetalleComponent', () => {
       expect(texto(elemento.querySelector('header.encabezado')!)).toContain(
         'Santa Cruz · Zona Centro · Inicio 01/11/2026',
       );
+    });
+
+    describe('riesgo de retraso del modelo (402)', () => {
+      const riesgo = (elemento: HTMLElement) => texto(elemento.querySelector('app-riesgo-modelo')!).trim();
+
+      it('muestra nivel y porcentaje junto a «En riesgo», con los factores al pasar el cursor (criterio 10)', async () => {
+        const { fixture, elemento } = await abrir(EN_EJECUCION);
+        const chips = elemento.querySelector('header.encabezado .chips')!;
+        expect(texto(chips)).toContain('En riesgo');
+        expect(texto(chips)).toContain('Riesgo de retraso (modelo): ALTO · 72 %');
+        const ayuda = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip);
+        expect(ayuda.message).toBe(
+          'El ritmo de avance de los últimos meses es menor al necesario para terminar a tiempo\n' +
+            'El avance está 12,5 puntos por debajo del plazo transcurrido',
+        );
+        expect(ayuda.disabled).toBe(false);
+        expect(elemento.querySelector('.riesgo')?.className).toContain('error');
+      });
+
+      it('sin predicción muestra «Sin datos suficientes» sin factores (criterio 2)', async () => {
+        const { fixture, elemento } = await abrir({ ...EN_EJECUCION, riesgoRetraso: OBRA.riesgoRetraso });
+        expect(riesgo(elemento)).toBe('Riesgo de retraso (modelo): Sin datos suficientes');
+        const ayuda = fixture.debugElement.query(By.directive(MatTooltip)).injector.get(MatTooltip);
+        expect(ayuda.disabled).toBe(true);
+      });
+
+      it('si IA no responde muestra «—» con «Datos de IA no disponibles» y el resto normal (criterio 12)', async () => {
+        const { elemento } = await abrir({ ...EN_EJECUCION, riesgoRetraso: null });
+        expect(riesgo(elemento)).toBe('Riesgo de retraso (modelo): — Datos de IA no disponibles');
+        expect(elemento.textContent).toContain('En riesgo');
+        expect(elemento.textContent).toContain('Avance frente al plazo');
+        expect(elemento.textContent).toContain('Partidas');
+      });
     });
 
     it('sin riesgo no muestra la etiqueta', async () => {

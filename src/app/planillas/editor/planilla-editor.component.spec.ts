@@ -682,4 +682,23 @@ describe('PlanillaEditorComponent (borrador local, 104)', () => {
     expect(servicio.obtener).toHaveBeenCalledTimes(2);
     expect(elemento.textContent).not.toContain('Borrador local sin enviar');
   });
+
+  it('sin conexión la galería muestra la fecha y un recuadro en lugar de la miniatura, y se puede marcar', async () => {
+    const { elemento, fixture, esperar } = montarEditor({
+      plataforma: { enLinea: false },
+      fotos: () => of([FOTO('f1', '2026-11-20T15:00:00Z')]),
+    });
+    await esperar();
+
+    expect(elemento.querySelector('.galeria img')).toBeNull();
+    const recuadro = elemento.querySelector('.galeria .recuadro')!;
+    expect(recuadro.getAttribute('aria-label')).toBe('Foto del 20/11/2026 11:00');
+    expect(elemento.querySelector('.galeria figcaption')?.textContent).toContain(
+      '20/11/2026 11:00',
+    );
+
+    elemento.querySelector<HTMLInputElement>('.galeria input[type="checkbox"]')!.click();
+    fixture.detectChanges();
+    expect(elemento.querySelector('.galeria li')?.classList).toContain('elegida');
+  });
 });

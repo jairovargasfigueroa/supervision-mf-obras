@@ -163,13 +163,24 @@
           @for (foto of fotosVisibles(); track foto.id) {
             <li [class.elegida]="editable() && fotosElegidas().has(foto.id)">
               <figure>
-                <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
-                  <img
-                    [src]="foto.urlDescarga"
-                    loading="lazy"
-                    [alt]="'Foto del ' + fechaHora(foto.registradoEn)"
-                  />
-                </a>
+                @if (sinMiniaturas()) {
+                  <!-- 104: sin conexión los enlaces firmados vencen; recuadro en lugar de la miniatura -->
+                  <div
+                    class="recuadro"
+                    role="img"
+                    [attr.aria-label]="'Foto del ' + fechaHora(foto.registradoEn)"
+                  >
+                    <mat-icon fontSet="material-symbols-outlined">image</mat-icon>
+                  </div>
+                } @else {
+                  <a [href]="foto.urlDescarga" target="_blank" rel="noopener noreferrer">
+                    <img
+                      [src]="foto.urlDescarga"
+                      loading="lazy"
+                      [alt]="'Foto del ' + fechaHora(foto.registradoEn)"
+                    />
+                  </a>
+                }
                 <figcaption>
                   <span class="sv-numero">{{ fechaHora(foto.registradoEn) }}</span>
                   <span class="secundario">{{ foto.registradoPor?.nombre ?? '—' }}</span>

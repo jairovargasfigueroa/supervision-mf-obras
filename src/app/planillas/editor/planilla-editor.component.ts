@@ -12,6 +12,7 @@ import { FormArray, FormControl, ReactiveFormsModule, Validators } from '@angula
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -80,6 +81,7 @@ export const GUARDADO_EN_EQUIPO = 'Guardado en este equipo; se enviará al volve
     RouterLink,
     MatButtonModule,
     MatCheckboxModule,
+    MatIconModule,
     MatFormFieldModule,
     MatInputModule,
     MatTableModule,
@@ -166,6 +168,12 @@ export class PlanillaEditorComponent implements OnInit {
   /** Fotos de avance de la obra registradas dentro del periodo (criterio 6). */
   protected readonly fotos = signal<Foto[]>([]);
   protected readonly estadoFotos = signal<'cargando' | 'listo' | 'error'>('cargando');
+  /** Las fotos vienen del equipo: sus enlaces firmados pudieron vencer. */
+  private readonly fotosDesdeEquipo = signal(false);
+  /** 104: sin conexión la galería muestra un recuadro con la fecha en lugar de la miniatura. */
+  protected readonly sinMiniaturas = computed(
+    () => !this.conexion.enLinea() || this.fotosDesdeEquipo(),
+  );
   protected readonly fotosElegidas = signal<ReadonlySet<string>>(new Set());
   /** En edición, toda la galería del periodo para elegir; en lectura, solo las adjuntas. */
   protected readonly fotosVisibles = computed(() =>
@@ -322,6 +330,7 @@ export class PlanillaEditorComponent implements OnInit {
       .subscribe({
         next: (respuesta) => {
           this.fotos.set(respuesta?.datos ?? []);
+          this.fotosDesdeEquipo.set(respuesta?.desdeEquipo ?? false);
           this.estadoFotos.set(respuesta ? 'listo' : 'error');
         },
         error: (error: unknown) => {

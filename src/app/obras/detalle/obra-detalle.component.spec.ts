@@ -279,6 +279,45 @@ describe('ObraDetalleComponent', () => {
       expect(cobros).not.toHaveBeenCalled();
     });
 
+    it.each([
+      ['admin', 'r1', true],
+      ['residente', 'u1', true],
+      ['residente', 'r1', false],
+      ['gerente', 'r1', false],
+    ])(
+      'consumos atípicos: %s (residente de la obra %s) puede revisar: %s (403, criterios 7 y 9)',
+      async (rol, residenteId, puede) => {
+        const pendiente = {
+          id: 'mv1',
+          movimientoId: 'mv1',
+          obraId: 'b1',
+          materialId: 'm1',
+          material: null,
+          partidaId: 'p1',
+          cantidad: 120,
+          periodo: '2026-11',
+          registradoEn: '2026-11-15T02:40:00Z',
+          puntaje: 0.7,
+          motivos: ['Salió más material del que había en stock'],
+          estadoRevision: 'PENDIENTE',
+          revisadoPor: null,
+          revisadoEn: null,
+          comentario: null,
+          versionModelo: 'ca-1.0.0',
+        };
+        const { elemento } = await abrir(
+          { ...EN_EJECUCION, residente: { id: residenteId, nombre: 'Rosa Vaca', correo: null } },
+          { roles: [rol], pestanas: { consumosAtipicos: () => of([pendiente]) } },
+        );
+        expect(texto(elemento)).toContain('Salió más material del que había en stock');
+        expect(texto(elemento)).toContain('P-01');
+        const hayBotones = [...elemento.querySelectorAll('button')].some(
+          (b) => b.textContent?.trim() === 'Confirmar problema',
+        );
+        expect(hayBotones).toBe(puede);
+      },
+    );
+
     it('si el servicio de una pestaña no responde, el resto de la pantalla se ve normal (criterio 4)', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const caido = () => throwError(() => new Error('caído'));

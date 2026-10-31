@@ -6,4 +6,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Sección «Consumos atípicos» en la pestaña Material: tabla con filtro por estado, puntaje, motivos y manejo de error propio
 - [x] Botones «Es normal» y «Confirmar problema» según rol y estado; diálogo con comentario (obligatorio al confirmar); aviso de ya revisado
-- [ ] Pruebas de componentes
+- [x] Pruebas de componentes

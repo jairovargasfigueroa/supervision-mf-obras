@@ -27,8 +27,10 @@ import {
   formatearNumero,
   formatearPeriodo,
   formatearPorcentaje,
+  formatearDiaHora,
 } from '../../nucleo/formato';
-import { SesionService } from '../../nucleo/sesion.service';
+import { esFalloDeConexion } from '../../nucleo/respaldo.service';
+import { SesionService, type BorradorPlanilla } from '../../nucleo/sesion.service';
 import type { Foto } from '../../obras/obras.graphql';
 import { esResidenteAsignado } from '../nueva/planilla-nueva.component';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
@@ -45,6 +47,9 @@ export function mensajeSupera(saldoDisponible: number): string {
 /** Texto de arriba cuando hay filas que superan lo contratado (docs/mensajes.md, SUPERA_CANTIDAD_CONTRATADA). */
 export const MENSAJE_FILAS_SUPERAN =
   'Hay filas que superan lo contratado. Corrígelas para guardar.';
+
+/** 104, criterio 10. */
+export const GUARDADO_EN_EQUIPO = 'Guardado en este equipo; se enviará al volver la conexión';
 
 /**
  * Editor de la planilla (007, criterios 3 a 10): por partida, cantidad contratada, acumulado anterior, cantidad del
@@ -185,10 +190,16 @@ export class PlanillaEditorComponent implements OnInit {
       this.cantidadesValidas() &&
       (this.totales()?.subtotal ?? 0) > 0 &&
       this.ocupado() === null &&
-      // 104, criterio 17: «Presentar» requiere conexión
-      this.conexion.enLinea(),
+      // 104, criterio 17: «Presentar» requiere conexión y no hay un borrador local sin enviar
+      this.conexion.enLinea() &&
+      !this.borrador(),
   );
   protected readonly errorAccion = signal('');
+  /** «Guardado en este equipo; se enviará al volver la conexión» (104, criterio 10). */
+  protected readonly avisoAccion = signal('');
+  /** Borrador de esta planilla guardado en el equipo y todavía sin enviar (104, criterio 12). */
+  protected readonly borrador = signal<BorradorPlanilla | null>(null);
+  protected readonly diaHora = formatearDiaHora;
   /** Otra persona guardó la planilla antes: se ofrece «Recargar» (criterio 7). */
   protected readonly versionDesactualizada = signal(false);
 
@@ -256,8 +267,11 @@ export class PlanillaEditorComponent implements OnInit {
           const obra = respuestaObra?.datos ?? null;
           this.guardadoEn.set(respuesta.guardadoEn);
           this.obra.set(obra);
+          this.borrador.set(null);
+          this.avisoAccion.set('');
           if (planilla) {
             this.aplicar(planilla);
+            void this.leerBorrador(planilla);
             this.cargarFotos();
             if (aviso) this.errorAccion.set(aviso(planilla));
           }
@@ -311,13 +325,86 @@ export class PlanillaEditorComponent implements OnInit {
     const planilla = this.planilla();
     if (!planilla || !this.puedeGuardar()) return;
     this.empezar('guardando');
+    // 104, criterio 10: sin conexión el borrador se guarda en el equipo
+    if (!this.conexion.enLinea() && window.plataforma?.almacen) {
+      void this.guardarEnEquipo(planilla);
+      return;
+    }
     this.servicio.guardar(planilla.id, this.entrada(planilla)).subscribe({
       next: (guardada) => {
         this.aplicar(guardada);
         this.ocupado.set(null);
+        // Lo guardado en el servidor reemplaza al borrador local
+        if (this.borrador()) {
+          this.borrador.set(null);
+          void window.plataforma?.almacen?.borrarBorradorPlanilla(guardada.id);
+        }
       },
-      error: (error: unknown) => this.fallo('guardarPlanilla', error),
+      error: (error: unknown) => {
+        if (esFalloDeConexion(error) && window.plataforma?.almacen) {
+          this.conexion.reportarFallo();
+          void this.guardarEnEquipo(planilla);
+          return;
+        }
+        this.fallo('guardarPlanilla', error);
+      },
     });
+  }
+
+  /** Guarda las cantidades y las fotos elegidas como borrador local `PENDIENTE` (104, criterio 10). */
+  private async guardarEnEquipo(planilla: Planilla): Promise<void> {
+    const entrada = this.entrada(planilla);
+    const borrador: BorradorPlanilla = {
+      planillaId: planilla.id,
+      obraId: planilla.obraId,
+      numero: planilla.numero,
+      periodo: planilla.periodo,
+      versionBase: planilla.version,
+      lineas: entrada.lineas,
+      fotoIds: entrada.fotoIds,
+      guardadoEn: new Date().toISOString(),
+      estadoEnvio: 'PENDIENTE',
+    };
+    try {
+      await window.plataforma!.almacen!.guardarBorradorPlanilla(borrador);
+      this.borrador.set(borrador);
+      this.superanEnServidor.set(new Set());
+      this.avisoAccion.set(GUARDADO_EN_EQUIPO);
+    } catch (error) {
+      console.error('[mf-obras] No se pudo guardar el borrador en el equipo', error);
+      this.errorAccion.set(mensajeDeError(leerError(error)));
+    } finally {
+      this.ocupado.set(null);
+    }
+  }
+
+  /**
+   * Si hay un borrador local de esta planilla, muestra sus cantidades y fotos (104, criterio 12). Uno rechazado por
+   * una regla marca las filas con los errores que devolvió Obras (criterio 16).
+   */
+  private async leerBorrador(planilla: Planilla): Promise<void> {
+    const borrador = await window.plataforma?.almacen
+      ?.leerBorradorPlanilla(planilla.id)
+      .catch(() => null);
+    if (!borrador || this.planilla()?.id !== planilla.id) return;
+    this.borrador.set(borrador);
+    if (!this.editable()) return;
+    const porPartida = new Map(
+      borrador.lineas.map((linea) => [linea.partidaId, linea.cantidadPeriodo]),
+    );
+    planilla.lineas.forEach((linea, i) => {
+      if (porPartida.has(linea.partidaId)) {
+        this.cantidades.at(i).setValue(porPartida.get(linea.partidaId)!, { emitEvent: false });
+      }
+    });
+    this.fotosElegidas.set(new Set(borrador.fotoIds));
+    this.leerCantidades(false);
+    if (borrador.estadoEnvio === 'RECHAZADO' && borrador.ultimoError) {
+      this.superanEnServidor.set(
+        new Set((borrador.ultimoError.errores ?? []).map((errorCampo) => errorCampo.campo)),
+      );
+      this.errorAccion.set(borrador.ultimoError.mensaje);
+    }
   }
 
   /** «Presentar» (criterio 8): con cambios sin guardar, primero los guarda; luego presenta con la versión nueva. */
@@ -347,6 +434,7 @@ export class PlanillaEditorComponent implements OnInit {
   private empezar(accion: 'guardando' | 'presentando'): void {
     this.ocupado.set(accion);
     this.errorAccion.set('');
+    this.avisoAccion.set('');
     this.versionDesactualizada.set(false);
   }
 

@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { map, of, throwError, type Observable } from 'rxjs';
-import { red } from '../../nucleo/plataforma-falsa';
+import { instalarPlataformaFalsa, red, type PlataformaFalsa } from '../../nucleo/plataforma-falsa';
+import type { BorradorPlanilla } from '../../nucleo/sesion.service';
 import type { Foto } from '../../obras/obras.graphql';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
 import { PlanillasService } from '../planillas.service';
@@ -80,19 +81,32 @@ interface Opciones {
   guardar?: (id: string, entrada: GuardarPlanillaEntrada) => Observable<Planilla>;
   presentar?: (id: string, version: number) => Observable<Planilla>;
   fotos?: (obraId: string, periodo: string) => Observable<Foto[]>;
+  /** 104: window.plataforma con conexión y almacén en memoria. */
+  plataforma?: { enLinea?: boolean; borradores?: BorradorPlanilla[] };
 }
 
 function montarEditor(opciones: Opciones = {}) {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
   const usuario = opciones.usuario ?? { id: 'r1', roles: ['residente'] };
-  window.plataforma = {
-    configuracion: { gatewayUrl: 'http://localhost:4000/graphql' },
-    sesion: {
+  let plataforma: PlataformaFalsa | undefined;
+  if (opciones.plataforma) {
+    plataforma = instalarPlataformaFalsa({
+      enLinea: opciones.plataforma.enLinea,
       usuario: { ...usuario, nombre: 'Usuario' },
-      obtenerToken: () => Promise.resolve('t'),
-      cerrarSesion: () => undefined,
-    },
-  };
+    });
+    for (const borrador of opciones.plataforma.borradores ?? []) {
+      plataforma.borradores.set(borrador.planillaId, borrador);
+    }
+  } else {
+    window.plataforma = {
+      configuracion: { gatewayUrl: 'http://localhost:4000/graphql' },
+      sesion: {
+        usuario: { ...usuario, nombre: 'Usuario' },
+        obtenerToken: () => Promise.resolve('t'),
+        cerrarSesion: () => undefined,
+      },
+    };
+  }
   const planilla = { ...PLANILLA, ...opciones.planilla };
   const servicio = {
     // Respuestas de la red (104: el servicio devuelve { datos, desdeEquipo, guardadoEn })
@@ -138,7 +152,25 @@ function montarEditor(opciones: Opciones = {}) {
     [...elemento.querySelectorAll('.totales dd')].map((celda) => celda.textContent?.trim());
   const filas = () => [...elemento.querySelectorAll('tr.mat-mdc-row')];
   const aviso = () => elemento.querySelector('[role="alert"]')?.textContent?.trim();
-  return { fixture, elemento, servicio, entradas, escribir, boton, pulsar, totales, filas, aviso };
+  /** Espera las promesas del almacén y vuelve a pintar. */
+  const esperar = async () => {
+    await new Promise((listo) => setTimeout(listo));
+    fixture.detectChanges();
+  };
+  return {
+    fixture,
+    elemento,
+    servicio,
+    entradas,
+    escribir,
+    boton,
+    pulsar,
+    totales,
+    filas,
+    aviso,
+    plataforma,
+    esperar,
+  };
 }
 
 describe('PlanillaEditorComponent (edición)', () => {
@@ -481,5 +513,123 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
   it('una planilla que no existe o no ve muestra el aviso de no encontrada', () => {
     const { elemento } = montarEditor({ obtener: () => of(null) });
     expect(elemento.textContent).toContain('No encontramos lo que buscas.');
+  });
+});
+
+describe('PlanillaEditorComponent (borrador local, 104)', () => {
+  afterEach(() => delete window.plataforma);
+
+  const borradorLocal = (cambios: Partial<BorradorPlanilla> = {}): BorradorPlanilla => ({
+    planillaId: 'pl1',
+    obraId: 'b1',
+    numero: 3,
+    periodo: '2026-11',
+    versionBase: 2,
+    lineas: [
+      { partidaId: 'p1', cantidadPeriodo: 120 },
+      { partidaId: 'p2', cantidadPeriodo: 10 },
+    ],
+    fotoIds: [],
+    guardadoEn: '2026-11-15T18:30:00Z',
+    estadoEnvio: 'PENDIENTE',
+    ...cambios,
+  });
+
+  it('sin conexión «Guardar» guarda el borrador en el equipo y deshabilita «Presentar»', async () => {
+    const { escribir, pulsar, boton, elemento, servicio, plataforma, esperar } = montarEditor({
+      plataforma: { enLinea: false },
+    });
+    escribir(0, '120');
+    expect(boton('Presentar')!.disabled).toBe(true);
+    pulsar('Guardar');
+    await esperar();
+
+    expect(servicio.guardar).not.toHaveBeenCalled();
+    const guardado = plataforma!.borradores.get('pl1')!;
+    expect(guardado).toMatchObject({
+      obraId: 'b1',
+      numero: 3,
+      periodo: '2026-11',
+      versionBase: 2,
+      estadoEnvio: 'PENDIENTE',
+      lineas: [
+        { partidaId: 'p1', cantidadPeriodo: 120 },
+        { partidaId: 'p2', cantidadPeriodo: 0 },
+      ],
+    });
+    expect(elemento.textContent).toContain(
+      'Guardado en este equipo; se enviará al volver la conexión',
+    );
+    expect(elemento.textContent).toContain('Borrador local sin enviar');
+  });
+
+  it('si el envío falla por la red, guarda el borrador en el equipo y avisa al shell', async () => {
+    const { escribir, pulsar, elemento, plataforma, esperar } = montarEditor({
+      plataforma: { enLinea: true },
+      guardar: () => throwError(() => new TypeError('Failed to fetch')),
+    });
+    escribir(1, '5');
+    pulsar('Guardar');
+    await esperar();
+
+    expect(plataforma!.fallosReportados).toBe(1);
+    expect(plataforma!.borradores.get('pl1')?.lineas[1].cantidadPeriodo).toBe(5);
+    expect(elemento.textContent).toContain(
+      'Guardado en este equipo; se enviará al volver la conexión',
+    );
+  });
+
+  it('al abrir una planilla con borrador muestra sus cantidades y «Borrador local sin enviar (guardado dd/mm hh:mm)»', async () => {
+    const { entradas, totales, elemento, boton, esperar } = montarEditor({
+      plataforma: { enLinea: true, borradores: [borradorLocal()] },
+    });
+    await esperar();
+
+    expect(entradas().map((entrada) => entrada.value)).toEqual(['120', '10']);
+    expect(totales()[0]).toBe('Bs 51.460,00');
+    expect(elemento.textContent).toContain('Borrador local sin enviar (guardado 15/11 14:30)');
+    expect(boton('Presentar')!.disabled).toBe(true);
+  });
+
+  it('un borrador rechazado marca las filas con los errores de Obras', async () => {
+    const { filas, elemento, esperar } = montarEditor({
+      plataforma: {
+        borradores: [
+          borradorLocal({
+            estadoEnvio: 'RECHAZADO',
+            ultimoError: {
+              codigo: 'SUPERA_CANTIDAD_CONTRATADA',
+              mensaje: 'Hay filas que superan lo contratado. Corrígelas para guardar.',
+              errores: [{ campo: 'p2', mensaje: 'supera' }],
+            },
+          }),
+        ],
+      },
+    });
+    await esperar();
+    expect(filas()[1].classList).toContain('supera');
+    expect(elemento.textContent).toContain('Hay filas que superan lo contratado.');
+  });
+
+  it('guardar con conexión borra el borrador local', async () => {
+    const { escribir, pulsar, plataforma, elemento, esperar } = montarEditor({
+      plataforma: { borradores: [borradorLocal()] },
+      guardar: (_id, entrada) =>
+        of({
+          ...PLANILLA,
+          version: 3,
+          lineas: PLANILLA.lineas.map((linea, i) => ({
+            ...linea,
+            cantidadPeriodo: entrada.lineas[i].cantidadPeriodo,
+          })),
+        }),
+    });
+    await esperar();
+    escribir(0, '100');
+    pulsar('Guardar');
+    await esperar();
+
+    expect(plataforma!.borradores.has('pl1')).toBe(false);
+    expect(elemento.textContent).not.toContain('Borrador local sin enviar');
   });
 });

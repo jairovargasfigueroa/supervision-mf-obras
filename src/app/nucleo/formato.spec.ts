@@ -1,5 +1,6 @@
 import {
   formatearCantidad,
+  formatearDiaHora,
   formatearFecha,
   formatearFechaHora,
   formatearMonto,
@@ -42,5 +43,9 @@ describe('formato', () => {
   it('formatea instantes en hora de La Paz (UTC−4)', () => {
     expect(formatearFecha('2026-11-16T02:00:00Z')).toBe('15/11/2026');
     expect(formatearFechaHora('2026-11-15T18:30:00Z')).toBe('15/11/2026 14:30');
+  });
+
+  it('formatea día y hora sin el año (borrador local, 104)', () => {
+    expect(formatearDiaHora('2026-11-16T02:05:00Z')).toBe('15/11 22:05');
   });
 });

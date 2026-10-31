@@ -40,6 +40,13 @@
 
     <!-- 007, criterio 9, y 008, criterio 14: la observación del cliente (o el motivo del fallo de la aprobación) se ve
          para corregir y volver a presentar -->
+    <!-- 104, criterio 12 -->
+    @if (borrador(); as borrador) {
+      <div class="aviso aviso-atencion" role="status">
+        Borrador local sin enviar (guardado {{ diaHora(borrador.guardadoEn) }})
+      </div>
+    }
+
     @if (planilla.estado === 'OBSERVADA' && planilla.observacion) {
       <div class="aviso aviso-error observacion" role="note">
         <strong>Observación</strong>
@@ -183,6 +190,9 @@
       }
     </section>
 
+    @if (avisoAccion()) {
+      <div class="aviso aviso-atencion" role="status">{{ avisoAccion() }}</div>
+    }
     @if (editable() && hayFilasQueSuperan()) {
       <div class="aviso aviso-error" role="alert">{{ mensajeFilasSuperan }}</div>
     } @else if (errorAccion()) {

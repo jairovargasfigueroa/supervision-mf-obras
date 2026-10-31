@@ -1,4 +1,5 @@
 // Solo para las pruebas: window.plataforma con conexión y almacén en memoria, como lo publica el shell (104).
+import { map, type Observable } from 'rxjs';
 import {
   EVENTO_BORRADORES,
   EVENTO_CONEXION,
@@ -76,4 +77,38 @@ export function instalarPlataformaFalsa(
     almacen: opciones.sinAlmacen ? undefined : almacen,
   };
   return falsa;
+}
+
+/** Respuesta de un servicio con respaldo que llegó de la red (para simular los servicios en las pruebas). */
+export function red<T>(datos: T): { datos: T; desdeEquipo: false; guardadoEn: null } {
+  return { datos, desdeEquipo: false, guardadoEn: null };
+}
+
+const CONSULTAS_CON_RESPALDO = [
+  'listar',
+  'obtener',
+  'finanzas',
+  'materialComparado',
+  'fotos',
+  'planillas',
+  'cobros',
+  'obra',
+  'fotosDelPeriodo',
+];
+
+/**
+ * Envuelve un servicio simulado cuyas consultas devuelven los datos tal cual, para que respondan como los servicios
+ * con respaldo de la 104 (`{ datos, desdeEquipo: false, guardadoEn: null }`). Los vi.fn originales siguen contando
+ * las llamadas.
+ */
+export function desdeLaRed<T extends object>(servicio: T): T {
+  const envuelto: Record<string, unknown> = { ...(servicio as Record<string, unknown>) };
+  for (const nombre of CONSULTAS_CON_RESPALDO) {
+    const metodo = (servicio as unknown as Record<string, unknown>)[nombre];
+    if (typeof metodo === 'function') {
+      envuelto[nombre] = (...argumentos: unknown[]) =>
+        (metodo as (...a: unknown[]) => Observable<unknown>)(...argumentos).pipe(map(red));
+    }
+  }
+  return envuelto as unknown as T;
 }

@@ -34,7 +34,10 @@ describe('PlanillasService', () => {
   let gateway: ApolloTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [ApolloTestingModule], providers: [PlanillasService] });
+    TestBed.configureTestingModule({
+      imports: [ApolloTestingModule],
+      providers: [PlanillasService],
+    });
     servicio = TestBed.inject(PlanillasService);
     gateway = TestBed.inject(ApolloTestingController);
   });
@@ -55,14 +58,19 @@ describe('PlanillasService', () => {
       cobro: { __typename: 'CobroPlanilla', id: 'c1', numero: 'COB-2026-0003' },
     });
     const primera = firstValueFrom(servicio.obtener('pl1'));
-    gateway.expectOne(CONSULTA_PLANILLA).flushData({ planilla: planillaDelGateway({ estado: 'APROBANDO' }) });
-    expect(await primera).toMatchObject({ estado: 'APROBANDO', cobro: null });
+    gateway
+      .expectOne(CONSULTA_PLANILLA)
+      .flushData({ planilla: planillaDelGateway({ estado: 'APROBANDO' }) });
+    expect((await primera)?.datos).toMatchObject({ estado: 'APROBANDO', cobro: null });
 
     const segunda = firstValueFrom(servicio.obtener('pl1'));
     const operacion = gateway.expectOne(CONSULTA_PLANILLA);
     expect(operacion.operation.variables).toEqual({ id: 'pl1' });
     operacion.flushData({ planilla: aprobada });
-    expect(await segunda).toMatchObject({ estado: 'APROBADA', cobro: { id: 'c1', numero: 'COB-2026-0003' } });
+    expect((await segunda)?.datos).toMatchObject({
+      estado: 'APROBADA',
+      cobro: { id: 'c1', numero: 'COB-2026-0003' },
+    });
   });
 });
 
@@ -71,7 +79,10 @@ describe('PlanillasService.fotosDelPeriodo', () => {
   let gateway: ApolloTestingController;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [ApolloTestingModule], providers: [PlanillasService] });
+    TestBed.configureTestingModule({
+      imports: [ApolloTestingModule],
+      providers: [PlanillasService],
+    });
     servicio = TestBed.inject(PlanillasService);
     gateway = TestBed.inject(ApolloTestingController);
   });
@@ -87,7 +98,11 @@ describe('PlanillasService.fotosDelPeriodo', () => {
     urlDescarga: `https://s3.example/${id}.jpg`,
   });
   const pagina = (numero: number, items: ReturnType<typeof foto>[], total: number) => ({
-    obra: { __typename: 'Obra', id: 'b1', fotos: { __typename: 'FotosPagina', items, total, pagina: numero, tamano: 2 } },
+    obra: {
+      __typename: 'Obra',
+      id: 'b1',
+      fotos: { __typename: 'FotosPagina', items, total, pagina: numero, tamano: 2 },
+    },
   });
 
   it('pide páginas hasta pasar el inicio del periodo y deja solo las del mes en La Paz (criterio 6)', async () => {
@@ -95,12 +110,16 @@ describe('PlanillasService.fotosDelPeriodo', () => {
     const primera = gateway.expectOne(CONSULTA_FOTOS);
     expect(primera.operation.variables).toEqual({ id: 'b1', pagina: 1, tamano: 100 });
     // 1 de diciembre a las 02:00 UTC todavía es 30 de noviembre en La Paz
-    primera.flushData(pagina(1, [foto('f3', '2026-12-02T15:00:00Z'), foto('f2', '2026-12-01T02:00:00Z')], 6));
+    primera.flushData(
+      pagina(1, [foto('f3', '2026-12-02T15:00:00Z'), foto('f2', '2026-12-01T02:00:00Z')], 6),
+    );
     await new Promise((listo) => setTimeout(listo));
     const segunda = gateway.expectOne(CONSULTA_FOTOS);
     expect(segunda.operation.variables).toEqual({ id: 'b1', pagina: 2, tamano: 100 });
-    segunda.flushData(pagina(2, [foto('f1', '2026-11-03T15:00:00Z'), foto('f0', '2026-10-30T15:00:00Z')], 6));
+    segunda.flushData(
+      pagina(2, [foto('f1', '2026-11-03T15:00:00Z'), foto('f0', '2026-10-30T15:00:00Z')], 6),
+    );
     // f0 ya es de octubre: no se pide la página 3
-    expect((await respuesta).map((f) => f.id)).toEqual(['f2', 'f1']);
+    expect((await respuesta)?.datos.map((f) => f.id)).toEqual(['f2', 'f1']);
   });
 });

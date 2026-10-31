@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +17,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, merge, type Subscription } from 'rxjs';
 import { ETIQUETA_ESTADO_OBRA, EstadoChipComponent } from '../../compartido/estado-chip.component';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, registrarError } from '../../nucleo/errores';
@@ -37,6 +46,7 @@ export const ESPERA_BUSQUEDA_MS = 300;
     EstadoChipComponent,
     EstadoVacioComponent,
     EstadoErrorComponent,
+    AvisoSinConexionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './obras-lista.component.html',
@@ -50,13 +60,17 @@ export class ObrasListaComponent implements OnInit {
   private readonly destruir = inject(DestroyRef);
 
   /** Solo admin registra obras (002, criterio 10): residente y gerente no ven «Nueva obra». */
-  protected readonly esAdmin = computed(() => this.sesion.usuario()?.roles.includes('admin') ?? false);
+  protected readonly esAdmin = computed(
+    () => this.sesion.usuario()?.roles.includes('admin') ?? false,
+  );
 
   protected readonly estados = Object.entries(ETIQUETA_ESTADO_OBRA) as [EstadoObra, string][];
   protected readonly filtroEstado = new FormControl<EstadoObra | ''>('', { nonNullable: true });
   protected readonly filtroBusqueda = new FormControl('', { nonNullable: true });
 
-  protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
+  protected readonly estado = signal<'cargando' | 'listo' | 'error' | 'sin-datos'>('cargando');
+  /** Fecha de los datos guardados en el equipo cuando se muestran sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly obras = signal<ObraResumen[]>([]);
   /** Hay algún filtro aplicado en la última consulta: la lista vacía no significa «Aún no hay obras». */
   protected readonly conFiltros = signal(false);
@@ -69,7 +83,10 @@ export class ObrasListaComponent implements OnInit {
     if (!this.sesion.dentroDelErp()) return;
     merge(
       this.filtroEstado.valueChanges,
-      this.filtroBusqueda.valueChanges.pipe(debounceTime(ESPERA_BUSQUEDA_MS), distinctUntilChanged()),
+      this.filtroBusqueda.valueChanges.pipe(
+        debounceTime(ESPERA_BUSQUEDA_MS),
+        distinctUntilChanged(),
+      ),
     )
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe(() => this.cargar());
@@ -95,8 +112,13 @@ export class ObrasListaComponent implements OnInit {
       .listar(filtros)
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (obras) => {
-          this.obras.set(obras);
+        next: (respuesta) => {
+          this.guardadoEn.set(respuesta?.guardadoEn ?? null);
+          if (!respuesta) {
+            this.estado.set('sin-datos');
+            return;
+          }
+          this.obras.set(respuesta.datos);
           this.estado.set('listo');
         },
         error: (error: unknown) => {

@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
@@ -75,15 +76,16 @@ function montar(obtener: (id: string) => Observable<Obra | null>, opciones: Opci
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'b1' })) } },
       {
         provide: ObrasService,
-        useValue: {
+        useValue: desdeLaRed({
           obtener,
           finanzas: opciones.finanzas ?? (() => of(FINANZAS)),
-          materialComparado: (_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: [] }),
+          materialComparado: (_id: string, periodo: string) =>
+            of({ periodo, hayPlanilla: true, filas: [] }),
           fotos: () => of({ items: [], total: 0, pagina: 1, tamano: 50 }),
           planillas: () => of([]),
           cobros: () => of([]),
           ...opciones.pestanas,
-        },
+        }),
       },
     ],
   });
@@ -121,7 +123,11 @@ describe('ObraDetalleComponent', () => {
   });
 
   it('muestra «Registrando contrato…» y consulta cada 2 s hasta EN_EJECUCION (002, criterio 8)', async () => {
-    const enEjecucion: Obra = { ...OBRA, estado: 'EN_EJECUCION', contrato: { ...OBRA.contrato, contratoId: 'c1' } };
+    const enEjecucion: Obra = {
+      ...OBRA,
+      estado: 'EN_EJECUCION',
+      contrato: { ...OBRA.contrato, contratoId: 'c1' },
+    };
     const respuestas: Obra[] = [OBRA, OBRA, enEjecucion];
     const obtener = vi.fn(() => of(respuestas.length > 1 ? respuestas.shift()! : respuestas[0]));
     const { fixture, elemento } = montar(obtener);
@@ -150,7 +156,9 @@ describe('ObraDetalleComponent', () => {
     fixture.detectChanges();
     expect(obtener).toHaveBeenCalledTimes(16);
     expect(elemento.textContent).toContain('Registrando contrato…');
-    expect([...elemento.querySelectorAll('button')].some((b) => b.textContent?.includes('Actualizar'))).toBe(true);
+    expect(
+      [...elemento.querySelectorAll('button')].some((b) => b.textContent?.includes('Actualizar')),
+    ).toBe(true);
   });
 
   it('si Finanzas rechaza el contrato muestra el motivo y deja de consultar (002, criterio 9)', async () => {
@@ -168,7 +176,12 @@ describe('ObraDetalleComponent', () => {
   it('OBRA_NO_ENCONTRADA muestra «Obra no encontrada» (criterio 6)', async () => {
     const error = new CombinedGraphQLErrors({
       data: { obra: null },
-      errors: [{ message: 'Obra no encontrada', extensions: { codigo: 'OBRA_NO_ENCONTRADA', estado: 404 } }],
+      errors: [
+        {
+          message: 'Obra no encontrada',
+          extensions: { codigo: 'OBRA_NO_ENCONTRADA', estado: 404 },
+        },
+      ],
     });
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { fixture, elemento } = montar(() => throwError(() => error));
@@ -196,7 +209,11 @@ describe('ObraDetalleComponent', () => {
     const pestanas = (elemento: HTMLElement) =>
       [...elemento.querySelectorAll('[role="tab"]')].map((pestana) => pestana.textContent?.trim());
 
-    async function abrirPestana(fixture: { detectChanges(): void }, elemento: HTMLElement, nombre: string) {
+    async function abrirPestana(
+      fixture: { detectChanges(): void },
+      elemento: HTMLElement,
+      nombre: string,
+    ) {
       const pestana = [...elemento.querySelectorAll<HTMLElement>('[role="tab"]')].find(
         (p) => p.textContent?.trim() === nombre,
       )!;
@@ -217,7 +234,9 @@ describe('ObraDetalleComponent', () => {
     });
 
     it('cada pestaña pide sus datos al abrirse', async () => {
-      const materialComparado = vi.fn((_id: string, periodo: string) => of({ periodo, hayPlanilla: true, filas: [] }));
+      const materialComparado = vi.fn((_id: string, periodo: string) =>
+        of({ periodo, hayPlanilla: true, filas: [] }),
+      );
       const fotos = vi.fn(() => of({ items: [], total: 0, pagina: 1, tamano: 50 }));
       const cobros = vi.fn(() => of([]));
       const { fixture, elemento } = await abrir(EN_EJECUCION, {
@@ -254,7 +273,6 @@ describe('ObraDetalleComponent', () => {
   });
 
   describe('obra en ejecución (criterio 3)', () => {
-
     it('el encabezado muestra nombre, ubicación, estado, inicio, asignaciones y «En riesgo»', async () => {
       const { elemento } = await abrir(EN_EJECUCION);
       const encabezado = texto(elemento.querySelector('header.encabezado')!);
@@ -290,17 +308,22 @@ describe('ObraDetalleComponent', () => {
 
     it('la tabla de partidas muestra código, nombre, unidad, contratada, ejecutada, avance y precio', async () => {
       const { elemento } = await abrir(EN_EJECUCION);
-      const celdas = [...elemento.querySelectorAll('tr.mat-mdc-row td')].map((celda) => celda.textContent?.trim());
+      const celdas = [...elemento.querySelectorAll('tr.mat-mdc-row td')].map((celda) =>
+        celda.textContent?.trim(),
+      );
       expect(celdas).toEqual(['P-01', 'Losa', 'm2', '850', '212,5', '25 %', 'Bs 420,50']);
     });
 
-    it.each([['admin'], ['gerente']])('%s ve el saldo disponible y el total cobrado', async (rol) => {
-      const finanzas = vi.fn(() => of(FINANZAS));
-      const { elemento } = await abrir(EN_EJECUCION, { roles: [rol], finanzas });
-      expect(finanzas).toHaveBeenCalledTimes(1);
-      expect(texto(elemento)).toContain('Saldo disponible Bs 300.000,00');
-      expect(texto(elemento)).toContain('Total cobrado Bs 57.425,00');
-    });
+    it.each([['admin'], ['gerente']])(
+      '%s ve el saldo disponible y el total cobrado',
+      async (rol) => {
+        const finanzas = vi.fn(() => of(FINANZAS));
+        const { elemento } = await abrir(EN_EJECUCION, { roles: [rol], finanzas });
+        expect(finanzas).toHaveBeenCalledTimes(1);
+        expect(texto(elemento)).toContain('Saldo disponible Bs 300.000,00');
+        expect(texto(elemento)).toContain('Total cobrado Bs 57.425,00');
+      },
+    );
 
     it('residente no pide ni ve las finanzas', async () => {
       const finanzas = vi.fn(() => of(FINANZAS));
@@ -319,7 +342,12 @@ describe('ObraDetalleComponent', () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const error = new CombinedGraphQLErrors({
         data: { obra: { id: 'b1', finanzas: null } },
-        errors: [{ message: 'x', extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'finanzas', estado: 503 } }],
+        errors: [
+          {
+            message: 'x',
+            extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'finanzas', estado: 503 },
+          },
+        ],
       });
       const respuestas: Observable<FinanzasObra | null>[] = [throwError(() => error), of(FINANZAS)];
       const finanzas = vi.fn(() => respuestas.shift()!);
@@ -328,7 +356,9 @@ describe('ObraDetalleComponent', () => {
       expect(texto(elemento)).toContain('Monto Bs 357.425,00');
       expect(elemento.textContent).toContain('Losa');
 
-      [...elemento.querySelectorAll('button')].find((b) => b.textContent?.includes('Reintentar'))!.click();
+      [...elemento.querySelectorAll('button')]
+        .find((b) => b.textContent?.includes('Reintentar'))!
+        .click();
       fixture.detectChanges();
       expect(finanzas).toHaveBeenCalledTimes(2);
       expect(texto(elemento)).toContain('Saldo disponible Bs 300.000,00');

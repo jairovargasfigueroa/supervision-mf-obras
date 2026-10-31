@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  inject,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,6 +18,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of, switchMap, type Subscription } from 'rxjs';
 import { ETIQUETAS, EstadoChipComponent } from '../../compartido/estado-chip.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, mensajeDeError, registrarError, type ErrorLeido } from '../../nucleo/errores';
 import {
@@ -32,7 +41,8 @@ export function mensajeSupera(saldoDisponible: number): string {
 }
 
 /** Texto de arriba cuando hay filas que superan lo contratado (docs/mensajes.md, SUPERA_CANTIDAD_CONTRATADA). */
-export const MENSAJE_FILAS_SUPERAN = 'Hay filas que superan lo contratado. Corrígelas para guardar.';
+export const MENSAJE_FILAS_SUPERAN =
+  'Hay filas que superan lo contratado. Corrígelas para guardar.';
 
 /**
  * Editor de la planilla (007, criterios 3 a 10): por partida, cantidad contratada, acumulado anterior, cantidad del
@@ -46,6 +56,7 @@ export const MENSAJE_FILAS_SUPERAN = 'Hay filas que superan lo contratado. Corr�
 @Component({
   selector: 'app-planilla-editor',
   imports: [
+    AvisoSinConexionComponent,
     ReactiveFormsModule,
     RouterLink,
     MatButtonModule,
@@ -70,7 +81,11 @@ export class PlanillaEditorComponent implements OnInit {
   /** Ruta de las rutas del microfrontend (/obras dentro del ERP): base de los enlaces. */
   protected readonly base = this.ruta.parent ?? null;
   private readonly id = signal('');
-  protected readonly estado = signal<'cargando' | 'listo' | 'no-encontrada' | 'error'>('cargando');
+  protected readonly estado = signal<
+    'cargando' | 'listo' | 'no-encontrada' | 'error' | 'sin-datos'
+  >('cargando');
+  /** Fecha de la planilla guardada en el equipo cuando se muestra sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly mensajeCarga = signal('');
   protected readonly planilla = signal<Planilla | null>(null);
   protected readonly obra = signal<ObraDePlanilla | null>(null);
@@ -131,7 +146,9 @@ export class PlanillaEditorComponent implements OnInit {
   protected readonly fotosElegidas = signal<ReadonlySet<string>>(new Set());
   /** En edición, toda la galería del periodo para elegir; en lectura, solo las adjuntas. */
   protected readonly fotosVisibles = computed(() =>
-    this.editable() ? this.fotos() : this.fotos().filter((foto) => this.fotosElegidas().has(foto.id)),
+    this.editable()
+      ? this.fotos()
+      : this.fotos().filter((foto) => this.fotosElegidas().has(foto.id)),
   );
 
   protected readonly hayFilasQueSuperan = computed(() => this.filas().some((fila) => fila.supera));
@@ -214,15 +231,24 @@ export class PlanillaEditorComponent implements OnInit {
     this.consulta = this.servicio
       .obtener(this.id())
       .pipe(
-        switchMap((planilla) =>
-          planilla
-            ? this.servicio.obra(planilla.obraId).pipe(map((obra) => ({ planilla, obra })))
-            : of({ planilla: null, obra: null }),
+        switchMap((respuesta) =>
+          respuesta?.datos
+            ? this.servicio.obra(respuesta.datos.obraId).pipe(map((obra) => ({ respuesta, obra })))
+            : of({ respuesta, obra: null }),
         ),
         takeUntilDestroyed(this.destruir),
       )
       .subscribe({
-        next: ({ planilla, obra }) => {
+        next: ({ respuesta, obra: respuestaObra }) => {
+          // Sin conexión y la planilla (o su obra) nunca se abrió en este equipo (104)
+          if (!respuesta || (respuesta.datos && !respuestaObra)) {
+            this.guardadoEn.set(null);
+            this.estado.set('sin-datos');
+            return;
+          }
+          const planilla = respuesta.datos;
+          const obra = respuestaObra?.datos ?? null;
+          this.guardadoEn.set(respuesta.guardadoEn);
           this.obra.set(obra);
           if (planilla) {
             this.aplicar(planilla);
@@ -235,7 +261,11 @@ export class PlanillaEditorComponent implements OnInit {
           const leido = leerError(error);
           registrarError('planilla', leido);
           this.mensajeCarga.set(mensajeDeError(leido));
-          this.estado.set(leido.estado === 404 || leido.codigo === 'OBRA_NO_ENCONTRADA' ? 'no-encontrada' : 'error');
+          this.estado.set(
+            leido.estado === 404 || leido.codigo === 'OBRA_NO_ENCONTRADA'
+              ? 'no-encontrada'
+              : 'error',
+          );
         },
       });
   }
@@ -250,9 +280,9 @@ export class PlanillaEditorComponent implements OnInit {
       .fotosDelPeriodo(planilla.obraId, planilla.periodo)
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (fotos) => {
-          this.fotos.set(fotos);
-          this.estadoFotos.set('listo');
+        next: (respuesta) => {
+          this.fotos.set(respuesta?.datos ?? []);
+          this.estadoFotos.set(respuesta ? 'listo' : 'error');
         },
         error: (error: unknown) => {
           registrarError('fotos del periodo', leerError(error));
@@ -289,7 +319,9 @@ export class PlanillaEditorComponent implements OnInit {
     const planilla = this.planilla();
     if (!planilla || !this.puedePresentar()) return;
     this.empezar('presentando');
-    const guardada = this.modificada() ? this.servicio.guardar(planilla.id, this.entrada(planilla)) : of(planilla);
+    const guardada = this.modificada()
+      ? this.servicio.guardar(planilla.id, this.entrada(planilla))
+      : of(planilla);
     guardada
       .pipe(
         switchMap((actual) => {
@@ -349,9 +381,12 @@ export class PlanillaEditorComponent implements OnInit {
     this.superanEnServidor.set(new Set());
     this.cantidades.clear({ emitEvent: false });
     for (const linea of planilla.lineas) {
-      this.cantidades.push(new FormControl<number | null>(linea.cantidadPeriodo, Validators.min(0)), {
-        emitEvent: false,
-      });
+      this.cantidades.push(
+        new FormControl<number | null>(linea.cantidadPeriodo, Validators.min(0)),
+        {
+          emitEvent: false,
+        },
+      );
     }
     this.leerCantidades(false);
   }

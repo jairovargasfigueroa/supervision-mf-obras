@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, signal, type OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  inject,
+  input,
+  signal,
+  type OnInit,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +14,7 @@ import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { Subscription } from 'rxjs';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { esCampoNoExpuesto, leerError, registrarError } from '../../nucleo/errores';
@@ -22,7 +31,16 @@ import { ObrasService } from '../obras.service';
  */
 @Component({
   selector: 'app-pestana-planillas',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatTableModule, EstadoChipComponent, EstadoErrorComponent, EstadoVacioComponent],
+  imports: [
+    RouterLink,
+    MatButtonModule,
+    MatIconModule,
+    MatTableModule,
+    EstadoChipComponent,
+    EstadoErrorComponent,
+    EstadoVacioComponent,
+    AvisoSinConexionComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pestana-planillas.component.html',
   styleUrl: './pestana.scss',
@@ -37,7 +55,9 @@ export class PestanaPlanillasComponent implements OnInit {
   protected readonly base = inject(ActivatedRoute).parent ?? null;
   private readonly destruir = inject(DestroyRef);
 
-  protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
+  protected readonly estado = signal<'cargando' | 'listo' | 'error' | 'sin-datos'>('cargando');
+  /** Fecha de los datos guardados en el equipo cuando se muestran sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly planillas = signal<PlanillaResumen[]>([]);
   protected readonly columnas = ['numero', 'periodo', 'estado', 'neto', 'cobro'];
   protected readonly monto = formatearMonto;
@@ -56,8 +76,13 @@ export class PestanaPlanillasComponent implements OnInit {
       .planillas(this.obraId())
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (planillas) => {
-          this.planillas.set([...planillas].sort((a, b) => b.numero - a.numero));
+        next: (respuesta) => {
+          this.guardadoEn.set(respuesta?.guardadoEn ?? null);
+          if (!respuesta) {
+            this.estado.set('sin-datos');
+            return;
+          }
+          this.planillas.set([...respuesta.datos].sort((a, b) => b.numero - a.numero));
           this.estado.set('listo');
         },
         error: (error: unknown) => {

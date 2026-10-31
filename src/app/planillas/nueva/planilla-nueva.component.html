@@ -12,6 +12,8 @@
     <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
   } @else if (estado() === 'cargando') {
     <p class="cargando">Cargando obra…</p>
+  } @else if (estado() === 'sin-datos') {
+    <app-aviso-sin-conexion />
   } @else if (estado() === 'no-encontrada') {
     <app-estado-vacio texto="Obra no encontrada" icono="search_off" />
   } @else if (estado() === 'error') {

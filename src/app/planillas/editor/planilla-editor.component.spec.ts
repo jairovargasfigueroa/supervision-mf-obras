@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of, throwError, type Observable } from 'rxjs';
+import { map, of, throwError, type Observable } from 'rxjs';
+import { red } from '../../nucleo/plataforma-falsa';
+import type { Foto } from '../../obras/obras.graphql';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
 import { PlanillasService } from '../planillas.service';
 import { PlanillaEditorComponent } from './planilla-editor.component';
@@ -61,7 +63,11 @@ const PLANILLA: Planilla = {
   fotoIds: [],
 };
 
-const errorGraphql = (codigo: string, estado: number, errores: { campo: string; mensaje: string }[] = []) =>
+const errorGraphql = (
+  codigo: string,
+  estado: number,
+  errores: { campo: string; mensaje: string }[] = [],
+) =>
   new CombinedGraphQLErrors({
     data: null,
     errors: [{ message: 'x', extensions: { codigo, estado, servicio: 'obras', errores } }],
@@ -73,7 +79,7 @@ interface Opciones {
   obtener?: () => Observable<Planilla | null>;
   guardar?: (id: string, entrada: GuardarPlanillaEntrada) => Observable<Planilla>;
   presentar?: (id: string, version: number) => Observable<Planilla>;
-  fotos?: PlanillasService['fotosDelPeriodo'];
+  fotos?: (obraId: string, periodo: string) => Observable<Foto[]>;
 }
 
 function montarEditor(opciones: Opciones = {}) {
@@ -89,17 +95,23 @@ function montarEditor(opciones: Opciones = {}) {
   };
   const planilla = { ...PLANILLA, ...opciones.planilla };
   const servicio = {
-    obtener: vi.fn(opciones.obtener ?? (() => of(planilla))),
-    obra: vi.fn(() => of(OBRA)),
+    // Respuestas de la red (104: el servicio devuelve { datos, desdeEquipo, guardadoEn })
+    obtener: vi.fn(() => (opciones.obtener ?? (() => of(planilla)))().pipe(map(red))),
+    obra: vi.fn(() => of(red(OBRA))),
     guardar: vi.fn(opciones.guardar ?? (() => of(planilla))),
     presentar: vi.fn(opciones.presentar ?? (() => of(planilla))),
-    fotosDelPeriodo: vi.fn(opciones.fotos ?? (() => of([]))),
+    fotosDelPeriodo: vi.fn((obraId: string, periodo: string) =>
+      (opciones.fotos ?? (() => of([])))(obraId, periodo).pipe(map(red)),
+    ),
   };
   TestBed.configureTestingModule({
     imports: [PlanillaEditorComponent],
     providers: [
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'pl1' })), parent: null } },
+      {
+        provide: ActivatedRoute,
+        useValue: { paramMap: of(convertToParamMap({ id: 'pl1' })), parent: null },
+      },
       { provide: PlanillasService, useValue: servicio },
     ],
   });
@@ -115,7 +127,9 @@ function montarEditor(opciones: Opciones = {}) {
     fixture.detectChanges();
   };
   const boton = (texto: string) =>
-    [...elemento.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim().startsWith(texto));
+    [...elemento.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+      b.textContent?.trim().startsWith(texto),
+    );
   const pulsar = (texto: string) => {
     boton(texto)!.click();
     fixture.detectChanges();
@@ -173,13 +187,24 @@ describe('PlanillaEditorComponent (edición)', () => {
     const guardada: Planilla = {
       ...PLANILLA,
       version: 3,
-      lineas: [{ ...PLANILLA.lineas[0], cantidadPeriodo: 120, acumuladoTotal: 420, saldo: 430, monto: 50460 }, PLANILLA.lineas[1]],
+      lineas: [
+        {
+          ...PLANILLA.lineas[0],
+          cantidadPeriodo: 120,
+          acumuladoTotal: 420,
+          saldo: 430,
+          monto: 50460,
+        },
+        PLANILLA.lineas[1],
+      ],
       subtotal: 50460,
       descuentoAnticipo: 5046,
       retencion: 3532.2,
       neto: 41881.8,
     };
-    const { escribir, pulsar, servicio, boton, totales } = montarEditor({ guardar: () => of(guardada) });
+    const { escribir, pulsar, servicio, boton, totales } = montarEditor({
+      guardar: () => of(guardada),
+    });
     expect(boton('Guardar')!.disabled).toBe(true);
     escribir(0, '120');
     pulsar('Guardar');
@@ -199,7 +224,9 @@ describe('PlanillaEditorComponent (edición)', () => {
   it('marca las filas que Obras rechaza por superar lo contratado (SUPERA_CANTIDAD_CONTRATADA)', () => {
     const { escribir, pulsar, filas, aviso } = montarEditor({
       guardar: () =>
-        throwError(() => errorGraphql('SUPERA_CANTIDAD_CONTRATADA', 422, [{ campo: 'p2', mensaje: 'supera' }])),
+        throwError(() =>
+          errorGraphql('SUPERA_CANTIDAD_CONTRATADA', 422, [{ campo: 'p2', mensaje: 'supera' }]),
+        ),
     });
     escribir(1, '10');
     pulsar('Guardar');
@@ -249,7 +276,9 @@ describe('PlanillaEditorComponent (fotos, guardar y presentar)', () => {
 
   it('si la galería no responde, solo esa sección muestra «No disponible por el momento»', () => {
     const { elemento } = montarEditor({ fotos: () => throwError(() => new Error('caído')) });
-    expect(elemento.querySelector('app-estado-error')?.textContent).toContain('No disponible por el momento.');
+    expect(elemento.querySelector('app-estado-error')?.textContent).toContain(
+      'No disponible por el momento.',
+    );
     expect(elemento.querySelectorAll('input[type="number"]').length).toBe(2);
   });
 
@@ -342,10 +371,25 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
 
   for (const rol of ['admin', 'gerente']) {
     it(`${rol} ve el borrador en modo lectura con lo que devolvió Obras (criterio 10)`, () => {
-      const { elemento, filas } = montarEditor({ usuario: { id: 'u9', roles: [rol] }, planilla: CON_CANTIDAD });
+      const { elemento, filas } = montarEditor({
+        usuario: { id: 'u9', roles: [rol] },
+        planilla: CON_CANTIDAD,
+      });
       expect(sinEdicion(elemento)).toEqual({ entradas: 0, botones: [] });
-      const celdas = [...filas()[0].querySelectorAll('td')].map((celda) => celda.textContent?.trim());
-      expect(celdas).toEqual(['P-01', 'Losa', 'm2', '850', '300', '120', '420', '430', 'Bs 50.460,00']);
+      const celdas = [...filas()[0].querySelectorAll('td')].map((celda) =>
+        celda.textContent?.trim(),
+      );
+      expect(celdas).toEqual([
+        'P-01',
+        'Losa',
+        'm2',
+        '850',
+        '300',
+        '120',
+        '420',
+        '430',
+        'Bs 50.460,00',
+      ]);
     });
   }
 
@@ -360,20 +404,26 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
       planilla: { ...CON_CANTIDAD, estado: 'PRESENTADA', fotoIds: ['f2'] },
       fotos: () => of([FOTO('f1', '2026-11-20T15:00:00Z'), FOTO('f2', '2026-11-05T15:00:00Z')]),
     });
-    expect([...elemento.querySelectorAll('.galeria img')].map((img) => img.getAttribute('src'))).toEqual([
-      'https://s3.example/f2.jpg',
-    ]);
+    expect(
+      [...elemento.querySelectorAll('.galeria img')].map((img) => img.getAttribute('src')),
+    ).toEqual(['https://s3.example/f2.jpg']);
     expect(elemento.querySelector('mat-checkbox')).toBeNull();
   });
 
   it('una OBSERVADA muestra la observación y se corrige y vuelve a presentar (criterio 9)', () => {
-    const observada: Planilla = { ...CON_CANTIDAD, estado: 'OBSERVADA', observacion: 'Falta la foto de la losa' };
+    const observada: Planilla = {
+      ...CON_CANTIDAD,
+      estado: 'OBSERVADA',
+      observacion: 'Falta la foto de la losa',
+    };
     const { elemento, escribir, pulsar, servicio, boton } = montarEditor({
       planilla: observada,
       guardar: () => of({ ...observada, version: 3 }),
       presentar: () => of({ ...observada, estado: 'PRESENTADA', version: 4 }),
     });
-    expect(elemento.querySelector('.observacion')?.textContent).toContain('Falta la foto de la losa');
+    expect(elemento.querySelector('.observacion')?.textContent).toContain(
+      'Falta la foto de la losa',
+    );
     expect(sinEdicion(elemento).entradas).toBe(2);
     escribir(0, '100');
     pulsar('Volver a presentar');
@@ -385,9 +435,15 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
 
   it('una APROBADA muestra el número de cobro (008, criterio 14)', () => {
     const { elemento } = montarEditor({
-      planilla: { ...CON_CANTIDAD, estado: 'APROBADA', cobro: { id: 'c1', numero: 'COB-2026-0003' } },
+      planilla: {
+        ...CON_CANTIDAD,
+        estado: 'APROBADA',
+        cobro: { id: 'c1', numero: 'COB-2026-0003' },
+      },
     });
-    expect(elemento.querySelector('.encabezado .cobro')?.textContent?.trim()).toBe('Cobro COB-2026-0003');
+    expect(elemento.querySelector('.encabezado .cobro')?.textContent?.trim()).toBe(
+      'Cobro COB-2026-0003',
+    );
     expect(elemento.querySelector('.observacion')).toBeNull();
   });
 
@@ -400,15 +456,23 @@ describe('PlanillaEditorComponent (modo lectura)', () => {
     it(`${rol} ve en lectura el motivo del fallo de la aprobación de una OBSERVADA (008, criterios 6 y 14)`, () => {
       const { elemento } = montarEditor({
         usuario: { id: 'u9', roles: [rol] },
-        planilla: { ...CON_CANTIDAD, estado: 'OBSERVADA', observacion: 'Saldo del contrato insuficiente' },
+        planilla: {
+          ...CON_CANTIDAD,
+          estado: 'OBSERVADA',
+          observacion: 'Saldo del contrato insuficiente',
+        },
       });
-      expect(elemento.querySelector('.observacion')?.textContent).toContain('Saldo del contrato insuficiente');
+      expect(elemento.querySelector('.observacion')?.textContent).toContain(
+        'Saldo del contrato insuficiente',
+      );
       expect(sinEdicion(elemento)).toEqual({ entradas: 0, botones: [] });
     });
   }
 
   it('al abrirse vuelve a leer la planilla del gateway para mostrar su estado actual (008)', () => {
-    const { servicio, elemento } = montarEditor({ planilla: { ...CON_CANTIDAD, estado: 'APROBADA' } });
+    const { servicio, elemento } = montarEditor({
+      planilla: { ...CON_CANTIDAD, estado: 'APROBADA' },
+    });
     expect(servicio.obtener).toHaveBeenCalledTimes(1);
     expect(servicio.obtener).toHaveBeenCalledWith('pl1');
     expect(elemento.querySelector('app-estado-chip')?.textContent).toContain('Aprobada');

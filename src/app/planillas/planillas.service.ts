@@ -2,6 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { EMPTY, expand, map, reduce, type Observable } from 'rxjs';
 import { periodoDe } from '../nucleo/periodos';
+import {
+  claveConsulta,
+  completa,
+  RespaldoService,
+  type ConRespaldo,
+} from '../nucleo/respaldo.service';
 import { CONSULTA_FOTOS, type Foto, type FotosPagina } from '../obras/obras.graphql';
 import {
   CONSULTA_OBRA_DE_PLANILLA,
@@ -21,28 +27,40 @@ export const TAMANO_PAGINA_FOTOS_PERIODO = 100;
 @Injectable()
 export class PlanillasService {
   private readonly apollo = inject(Apollo);
+  private readonly respaldo = inject(RespaldoService);
 
   /** La planilla con sus líneas, totales y versión; null si no existe sin error. */
-  obtener(id: string): Observable<Planilla | null> {
-    return this.apollo
-      .query({ query: CONSULTA_PLANILLA, variables: { id }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.planilla ?? null));
+  obtener(id: string): Observable<ConRespaldo<Planilla | null> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_PLANILLA, { id }), () =>
+      completa(
+        this.apollo
+          .query({ query: CONSULTA_PLANILLA, variables: { id }, fetchPolicy: 'network-only' })
+          .pipe(map((resultado) => resultado.data?.planilla ?? null)),
+      ),
+    );
   }
 
   /**
    * Nombre, estado, inicio y residente de la obra. Admite respuesta parcial (errorPolicy «all»), como el detalle:
    * si falla el nombre de una asignación, la obra llega igual.
    */
-  obra(id: string): Observable<ObraDePlanilla | null> {
-    return this.apollo
-      .query({ query: CONSULTA_OBRA_DE_PLANILLA, variables: { id }, fetchPolicy: 'network-only', errorPolicy: 'all' })
-      .pipe(
-        map((resultado) => {
-          const obra = resultado.data?.obra ?? null;
-          if (!obra && resultado.error) throw resultado.error;
-          return obra;
-        }),
-      );
+  obra(id: string): Observable<ConRespaldo<ObraDePlanilla | null> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_OBRA_DE_PLANILLA, { id }), () =>
+      this.apollo
+        .query({
+          query: CONSULTA_OBRA_DE_PLANILLA,
+          variables: { id },
+          fetchPolicy: 'network-only',
+          errorPolicy: 'all',
+        })
+        .pipe(
+          map((resultado) => {
+            const obra = resultado.data?.obra ?? null;
+            if (!obra && resultado.error) throw resultado.error;
+            return { datos: obra, completa: !resultado.error };
+          }),
+        ),
+    );
   }
 
   /** Crea la planilla del periodo `AAAA-MM` en BORRADOR, con una línea por partida en 0 (criterio 1). */
@@ -70,7 +88,14 @@ export class PlanillasService {
    * las devuelve de la más reciente a la más antigua y sin filtro de fecha: se piden páginas hasta pasar el inicio
    * del periodo o terminar.
    */
-  fotosDelPeriodo(obraId: string, periodo: string): Observable<Foto[]> {
+  fotosDelPeriodo(obraId: string, periodo: string): Observable<ConRespaldo<Foto[]> | null> {
+    return this.respaldo.consultaConRespaldo(
+      `FotosDelPeriodo:${JSON.stringify({ obraId, periodo })}`,
+      () => completa(this.fotosDelPeriodoEnLaRed(obraId, periodo)),
+    );
+  }
+
+  private fotosDelPeriodoEnLaRed(obraId: string, periodo: string): Observable<Foto[]> {
     const pedir = (pagina: number): Observable<FotosPagina> =>
       this.apollo
         .query({
@@ -81,14 +106,21 @@ export class PlanillasService {
         .pipe(
           map(
             (resultado) =>
-              resultado.data?.obra?.fotos ?? { items: [], total: 0, pagina, tamano: TAMANO_PAGINA_FOTOS_PERIODO },
+              resultado.data?.obra?.fotos ?? {
+                items: [],
+                total: 0,
+                pagina,
+                tamano: TAMANO_PAGINA_FOTOS_PERIODO,
+              },
           ),
         );
     return pedir(1).pipe(
       expand((pagina) => {
         const ultima = pagina.items.at(-1);
         const hayMas = pagina.items.length > 0 && pagina.pagina * pagina.tamano < pagina.total;
-        return hayMas && ultima && periodoDe(ultima.registradoEn) >= periodo ? pedir(pagina.pagina + 1) : EMPTY;
+        return hayMas && ultima && periodoDe(ultima.registradoEn) >= periodo
+          ? pedir(pagina.pagina + 1)
+          : EMPTY;
       }),
       reduce((fotos, pagina) => [...fotos, ...pagina.items], [] as Foto[]),
       map((fotos) => {

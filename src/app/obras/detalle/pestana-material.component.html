@@ -9,8 +9,13 @@
   </mat-form-field>
 </div>
 
+@if (guardadoEn(); as guardadoEn) {
+  <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+}
 @if (estado() === 'cargando') {
   <p class="cargando">Cargando material…</p>
+} @else if (estado() === 'sin-datos') {
+  <app-aviso-sin-conexion />
 } @else if (estado() === 'error') {
   <app-estado-error (reintentar)="cargar()" />
 } @else {
@@ -22,7 +27,10 @@
       </div>
     }
     @if (comparacion.filas.length === 0) {
-      <app-estado-vacio texto="No hay material previsto ni usado en este periodo." icono="inventory_2" />
+      <app-estado-vacio
+        texto="No hay material previsto ni usado en este periodo."
+        icono="inventory_2"
+      />
     } @else {
       <div class="tabla">
         <table mat-table [dataSource]="comparacion.filas">
@@ -42,7 +50,9 @@
           </ng-container>
           <ng-container matColumnDef="usado">
             <th mat-header-cell *matHeaderCellDef class="numero">Usado</th>
-            <td mat-cell *matCellDef="let fila" class="numero sv-numero">{{ cantidad(fila.usado, fila.material) }}</td>
+            <td mat-cell *matCellDef="let fila" class="numero sv-numero">
+              {{ cantidad(fila.usado, fila.material) }}
+            </td>
           </ng-container>
           <ng-container matColumnDef="diferencia">
             <th mat-header-cell *matHeaderCellDef class="numero">Diferencia</th>
@@ -54,15 +64,22 @@
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-          <tr mat-row *matRowDef="let fila; columns: columnas" [class.excedido]="fila.excedido"></tr>
+          <tr
+            mat-row
+            *matRowDef="let fila; columns: columnas"
+            [class.excedido]="fila.excedido"
+          ></tr>
         </table>
       </div>
     }
     <p class="ayuda">
-      Previsto: cantidad de la partida en la planilla del periodo × material por unidad. En rojo: usado mayor a 1,2
-      veces lo previsto.
+      Previsto: cantidad de la partida en la planilla del periodo × material por unidad. En rojo:
+      usado mayor a 1,2 veces lo previsto.
     </p>
   } @else {
-    <app-estado-vacio texto="No hay material previsto ni usado en este periodo." icono="inventory_2" />
+    <app-estado-vacio
+      texto="No hay material previsto ni usado en este periodo."
+      icono="inventory_2"
+    />
   }
 }

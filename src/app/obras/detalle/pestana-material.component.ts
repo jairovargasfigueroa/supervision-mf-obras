@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import type { Subscription } from 'rxjs';
 import { EstadoChipComponent } from '../../compartido/estado-chip.component';
+import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, registrarError } from '../../nucleo/errores';
@@ -25,7 +26,10 @@ import { ObrasService } from '../obras.service';
 
 /** `12,5 bolsas` (unidad en plural salvo para 1). */
 export function cantidadMaterial(cantidad: number, material: MaterialCorto): string {
-  return formatearCantidad(cantidad, Math.abs(cantidad) === 1 ? material.unidad : material.unidadPlural);
+  return formatearCantidad(
+    cantidad,
+    Math.abs(cantidad) === 1 ? material.unidad : material.unidadPlural,
+  );
 }
 
 /** Diferencia con signo: `+12,5 bolsas` si se usó más de lo previsto. */
@@ -41,6 +45,7 @@ export function diferenciaMaterial(diferencia: number, material: MaterialCorto):
 @Component({
   selector: 'app-pestana-material',
   imports: [
+    AvisoSinConexionComponent,
     MatFormFieldModule,
     MatIconModule,
     MatSelectModule,
@@ -64,7 +69,9 @@ export class PestanaMaterialComponent implements OnInit {
 
   protected readonly periodo = signal(this.mesActual);
   protected readonly periodos = computed(() => periodosDesde(this.fechaInicio(), this.mesActual));
-  protected readonly estado = signal<'cargando' | 'listo' | 'error'>('cargando');
+  protected readonly estado = signal<'cargando' | 'listo' | 'error' | 'sin-datos'>('cargando');
+  /** Fecha de los datos guardados en el equipo cuando se muestran sin conexión (104). */
+  protected readonly guardadoEn = signal<string | null>(null);
   protected readonly comparacion = signal<ComparacionMaterial | null>(null);
 
   protected readonly columnas = ['partida', 'material', 'previsto', 'usado', 'diferencia'];
@@ -90,8 +97,13 @@ export class PestanaMaterialComponent implements OnInit {
       .materialComparado(this.obraId(), this.periodo())
       .pipe(takeUntilDestroyed(this.destruir))
       .subscribe({
-        next: (comparacion) => {
-          this.comparacion.set(comparacion);
+        next: (respuesta) => {
+          this.guardadoEn.set(respuesta?.guardadoEn ?? null);
+          if (!respuesta) {
+            this.estado.set('sin-datos');
+            return;
+          }
+          this.comparacion.set(respuesta.datos);
           this.estado.set('listo');
         },
         error: (error: unknown) => {

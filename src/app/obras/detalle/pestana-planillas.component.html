@@ -6,8 +6,13 @@
     </a>
   </div>
 }
+@if (guardadoEn(); as guardadoEn) {
+  <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+}
 @if (estado() === 'cargando') {
   <p class="cargando">Cargando planillas…</p>
+} @else if (estado() === 'sin-datos') {
+  <app-aviso-sin-conexion />
 } @else if (estado() === 'error') {
   <app-estado-error (reintentar)="cargar()" />
 } @else if (planillas().length === 0) {
@@ -22,7 +27,9 @@
       <ng-container matColumnDef="periodo">
         <th mat-header-cell *matHeaderCellDef>Periodo</th>
         <td mat-cell *matCellDef="let planilla">
-          <a [routerLink]="['planillas', planilla.id]" [relativeTo]="base">{{ nombrePeriodo(planilla.periodo) }}</a>
+          <a [routerLink]="['planillas', planilla.id]" [relativeTo]="base">{{
+            nombrePeriodo(planilla.periodo)
+          }}</a>
         </td>
       </ng-container>
       <ng-container matColumnDef="estado">
@@ -31,12 +38,16 @@
       </ng-container>
       <ng-container matColumnDef="neto">
         <th mat-header-cell *matHeaderCellDef class="numero">Neto</th>
-        <td mat-cell *matCellDef="let planilla" class="numero sv-numero">{{ monto(planilla.neto) }}</td>
+        <td mat-cell *matCellDef="let planilla" class="numero sv-numero">
+          {{ monto(planilla.neto) }}
+        </td>
       </ng-container>
       <!-- 008: número del cobro de las planillas aprobadas -->
       <ng-container matColumnDef="cobro">
         <th mat-header-cell *matHeaderCellDef>Cobro</th>
-        <td mat-cell *matCellDef="let planilla" class="sv-numero">{{ planilla.cobroNumero ?? '—' }}</td>
+        <td mat-cell *matCellDef="let planilla" class="sv-numero">
+          {{ planilla.cobroNumero ?? '—' }}
+        </td>
       </ng-container>
       <tr mat-header-row *matHeaderRowDef="columnas"></tr>
       <tr mat-row *matRowDef="let fila; columns: columnas"></tr>

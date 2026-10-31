@@ -24,6 +24,12 @@ import {
   type Rol,
   type Usuario,
 } from './obras.graphql';
+import {
+  claveConsulta,
+  completa,
+  RespaldoService,
+  type ConRespaldo,
+} from '../nucleo/respaldo.service';
 
 /** Fotos por página (el valor por defecto de `fotos` en el contrato; Obras acepta hasta 100). */
 export const TAMANO_PAGINA_FOTOS = 50;
@@ -32,12 +38,20 @@ export const TAMANO_PAGINA_FOTOS = 50;
 @Injectable()
 export class ObrasService {
   private readonly apollo = inject(Apollo);
+  private readonly respaldo = inject(RespaldoService);
 
-  /** Obras que el usuario puede ver; el gateway filtra por estado y busca por nombre (006, criterio 2). */
-  listar(filtros: FiltrosObras = {}): Observable<ObraResumen[]> {
-    return this.apollo
-      .query({ query: CONSULTA_OBRAS, variables: filtros, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obras ?? []));
+  /**
+   * Obras que el usuario puede ver; el gateway filtra por estado y busca por nombre (006, criterio 2). Sin conexión,
+   * la última respuesta guardada de esos filtros (104); null si nunca se consultó en este equipo.
+   */
+  listar(filtros: FiltrosObras = {}): Observable<ConRespaldo<ObraResumen[]> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_OBRAS, { ...filtros }), () =>
+      completa(
+        this.apollo
+          .query({ query: CONSULTA_OBRAS, variables: filtros, fetchPolicy: 'network-only' })
+          .pipe(map((resultado) => resultado.data?.obras ?? [])),
+      ),
+    );
   }
 
   /** Usuarios de Keycloak con un rol (para las asignaciones de la obra). */
@@ -52,50 +66,102 @@ export class ObrasService {
    * secundario falla (por ejemplo los nombres de las asignaciones), la obra se muestra igual. Solo es error si no
    * llega la obra (OBRA_NO_ENCONTRADA, gateway caído); null si no existe sin error.
    */
-  obtener(id: string): Observable<Obra | null> {
-    return this.apollo
-      .query({ query: CONSULTA_OBRA, variables: { id }, fetchPolicy: 'network-only', errorPolicy: 'all' })
-      .pipe(
-        map((resultado) => {
-          const obra = resultado.data?.obra ?? null;
-          if (!obra && resultado.error) throw resultado.error;
-          return obra;
-        }),
-      );
+  obtener(id: string): Observable<ConRespaldo<Obra | null> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_OBRA, { id }), () =>
+      this.apollo
+        .query({
+          query: CONSULTA_OBRA,
+          variables: { id },
+          fetchPolicy: 'network-only',
+          errorPolicy: 'all',
+        })
+        .pipe(
+          map((resultado) => {
+            const obra = resultado.data?.obra ?? null;
+            if (!obra && resultado.error) throw resultado.error;
+            // Con algún campo caído (respuesta parcial) se muestra, pero no se guarda (104)
+            return { datos: obra, completa: !resultado.error };
+          }),
+        ),
+    );
   }
 
   /** Saldo disponible y total cobrado (Finanzas); null sin error si el rol no es admin ni gerente. */
-  finanzas(id: string): Observable<FinanzasObra | null> {
-    return this.apollo
-      .query({ query: CONSULTA_FINANZAS_OBRA, variables: { id }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obra?.finanzas ?? null));
+  finanzas(id: string): Observable<ConRespaldo<FinanzasObra | null> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_FINANZAS_OBRA, { id }), () =>
+      completa(
+        this.apollo
+          .query({ query: CONSULTA_FINANZAS_OBRA, variables: { id }, fetchPolicy: 'network-only' })
+          .pipe(map((resultado) => resultado.data?.obra?.finanzas ?? null)),
+      ),
+    );
   }
 
   /** Material usado frente al previsto del periodo `AAAA-MM`; null si el gateway no lo devuelve. */
-  materialComparado(id: string, periodo: string): Observable<ComparacionMaterial | null> {
-    return this.apollo
-      .query({ query: CONSULTA_MATERIAL_COMPARADO, variables: { id, periodo }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obra?.materialComparado ?? null));
+  materialComparado(
+    id: string,
+    periodo: string,
+  ): Observable<ConRespaldo<ComparacionMaterial | null> | null> {
+    return this.respaldo.consultaConRespaldo(
+      claveConsulta(CONSULTA_MATERIAL_COMPARADO, { id, periodo }),
+      () =>
+        completa(
+          this.apollo
+            .query({
+              query: CONSULTA_MATERIAL_COMPARADO,
+              variables: { id, periodo },
+              fetchPolicy: 'network-only',
+            })
+            .pipe(map((resultado) => resultado.data?.obra?.materialComparado ?? null)),
+        ),
+    );
   }
 
   /** Una página de fotos de avance, de la más reciente a la más antigua (orden de Obras). */
-  fotos(id: string, pagina: number, tamano = TAMANO_PAGINA_FOTOS): Observable<FotosPagina> {
-    return this.apollo
-      .query({ query: CONSULTA_FOTOS, variables: { id, pagina, tamano }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obra?.fotos ?? { items: [], total: 0, pagina, tamano }));
+  fotos(
+    id: string,
+    pagina: number,
+    tamano = TAMANO_PAGINA_FOTOS,
+  ): Observable<ConRespaldo<FotosPagina> | null> {
+    return this.respaldo.consultaConRespaldo(
+      claveConsulta(CONSULTA_FOTOS, { id, pagina, tamano }),
+      () =>
+        completa(
+          this.apollo
+            .query({
+              query: CONSULTA_FOTOS,
+              variables: { id, pagina, tamano },
+              fetchPolicy: 'network-only',
+            })
+            .pipe(
+              map(
+                (resultado) =>
+                  resultado.data?.obra?.fotos ?? { items: [], total: 0, pagina, tamano },
+              ),
+            ),
+        ),
+    );
   }
 
-  planillas(id: string): Observable<PlanillaResumen[]> {
-    return this.apollo
-      .query({ query: CONSULTA_PLANILLAS, variables: { id }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obra?.planillas ?? []));
+  planillas(id: string): Observable<ConRespaldo<PlanillaResumen[]> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_PLANILLAS, { id }), () =>
+      completa(
+        this.apollo
+          .query({ query: CONSULTA_PLANILLAS, variables: { id }, fetchPolicy: 'network-only' })
+          .pipe(map((resultado) => resultado.data?.obra?.planillas ?? [])),
+      ),
+    );
   }
 
   /** Cobros de la obra (Finanzas); null sin error si el rol no es admin ni gerente. */
-  cobros(id: string): Observable<Cobro[] | null> {
-    return this.apollo
-      .query({ query: CONSULTA_COBROS, variables: { id }, fetchPolicy: 'network-only' })
-      .pipe(map((resultado) => resultado.data?.obra?.cobros ?? null));
+  cobros(id: string): Observable<ConRespaldo<Cobro[] | null> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_COBROS, { id }), () =>
+      completa(
+        this.apollo
+          .query({ query: CONSULTA_COBROS, variables: { id }, fetchPolicy: 'network-only' })
+          .pipe(map((resultado) => resultado.data?.obra?.cobros ?? null)),
+      ),
+    );
   }
 
   registrar(entrada: RegistrarObraEntrada): Observable<{ id: string; estado: EstadoObra }> {

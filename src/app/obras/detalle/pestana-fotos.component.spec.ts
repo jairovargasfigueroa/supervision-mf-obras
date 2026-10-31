@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { of, throwError, type Observable } from 'rxjs';
 import type { Foto, FotosPagina } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
@@ -9,7 +10,12 @@ const PARTIDAS = [
   { id: 'p2', codigo: 'P-02', nombre: 'Losa' },
 ];
 
-const foto = (id: string, partidaId: string, registradoEn: string, autor: string | null = 'Mario Quispe'): Foto => ({
+const foto = (
+  id: string,
+  partidaId: string,
+  registradoEn: string,
+  autor: string | null = 'Mario Quispe',
+): Foto => ({
   id,
   partidaId,
   registradoPor: autor ? { id: 'u-' + autor, nombre: autor } : null,
@@ -26,7 +32,7 @@ const FOTOS = [
 function montar(fotos: (id: string, pagina: number) => Observable<FotosPagina>) {
   TestBed.configureTestingModule({
     imports: [PestanaFotosComponent],
-    providers: [{ provide: ObrasService, useValue: { fotos } }],
+    providers: [{ provide: ObrasService, useValue: desdeLaRed({ fotos }) }],
   });
   const fixture = TestBed.createComponent(PestanaFotosComponent);
   fixture.componentRef.setInput('obraId', 'b1');
@@ -53,14 +59,20 @@ describe('PestanaFotosComponent', () => {
 
   it('una foto de una partida que no está en la lista va al final', () => {
     const grupos = agruparFotos([foto('f9', 'px', '2026-11-01T12:00:00Z'), ...FOTOS], PARTIDAS);
-    expect(grupos.map((grupo) => grupo.titulo)).toEqual(['P-01 · Excavación', 'P-02 · Losa', 'Otra partida']);
+    expect(grupos.map((grupo) => grupo.titulo)).toEqual([
+      'P-01 · Excavación',
+      'P-02 · Losa',
+      'Otra partida',
+    ]);
   });
 
   it('muestra la galería con fecha y hora de La Paz y autor', () => {
     const fotos = vi.fn(() => of(pagina(FOTOS)));
     const { elemento } = montar(fotos);
     expect(fotos).toHaveBeenCalledExactlyOnceWith('b1', 1);
-    const titulos = [...elemento.querySelectorAll('h3')].map((h3) => h3.textContent?.replace(/\s+/g, ' ').trim());
+    const titulos = [...elemento.querySelectorAll('h3')].map((h3) =>
+      h3.textContent?.replace(/\s+/g, ' ').trim(),
+    );
     expect(titulos).toEqual(['P-01 · Excavación · 1', 'P-02 · Losa · 2']);
     const leyendas = [...elemento.querySelectorAll('figcaption')].map((leyenda) =>
       [...leyenda.querySelectorAll('span')].map((parte) => parte.textContent?.trim()),
@@ -76,7 +88,9 @@ describe('PestanaFotosComponent', () => {
   });
 
   it('sin fotos muestra el estado vacío', () => {
-    expect(montar(() => of(pagina([]))).elemento.textContent).toContain('Aún no hay fotos de avance.');
+    expect(montar(() => of(pagina([]))).elemento.textContent).toContain(
+      'Aún no hay fotos de avance.',
+    );
   });
 
   it('«Cargar más fotos» trae la página siguiente y la suma a la galería', () => {
@@ -84,7 +98,8 @@ describe('PestanaFotosComponent', () => {
       of(numero === 1 ? pagina(FOTOS.slice(0, 2), 3) : pagina([FOTOS[2]], 3, 2)),
     );
     const { fixture, elemento } = montar(fotos);
-    const boton = () => [...elemento.querySelectorAll('button')].find((b) => b.textContent?.includes('Cargar más'));
+    const boton = () =>
+      [...elemento.querySelectorAll('button')].find((b) => b.textContent?.includes('Cargar más'));
     expect(elemento.querySelectorAll('img')).toHaveLength(2);
     boton()!.click();
     fixture.detectChanges();
@@ -95,7 +110,10 @@ describe('PestanaFotosComponent', () => {
 
   it('si no responde muestra «No disponible por el momento» y reintenta (criterio 4)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    const respuestas: Observable<FotosPagina>[] = [throwError(() => new Error('caído')), of(pagina(FOTOS))];
+    const respuestas: Observable<FotosPagina>[] = [
+      throwError(() => new Error('caído')),
+      of(pagina(FOTOS)),
+    ];
     const { fixture, elemento } = montar(() => respuestas.shift()!);
     expect(elemento.textContent).toContain('No disponible por el momento.');
     elemento.querySelector('app-estado-error button')!.dispatchEvent(new Event('click'));

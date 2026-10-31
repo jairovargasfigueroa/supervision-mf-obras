@@ -1,10 +1,15 @@
 <section class="pagina">
   <nav class="migas"><a routerLink="..">Obras</a> / Detalle</nav>
 
+  @if (guardadoEn(); as guardadoEn) {
+    <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+  }
   @if (!sesion.dentroDelErp()) {
     <app-estado-vacio texto="Abre esta pantalla desde el ERP." icono="open_in_new" />
   } @else if (estado() === 'cargando') {
     <p class="cargando">Cargando obra…</p>
+  } @else if (estado() === 'sin-datos') {
+    <app-aviso-sin-conexion />
   } @else if (estado() === 'no-encontrada') {
     <app-estado-vacio texto="Obra no encontrada" icono="search_off" />
     <a mat-button routerLink="..">Volver a la lista de obras</a>
@@ -152,11 +157,15 @@
           </ng-container>
           <ng-container matColumnDef="avancePct">
             <th mat-header-cell *matHeaderCellDef class="numero">Avance</th>
-            <td mat-cell *matCellDef="let partida" class="numero sv-numero">{{ porcentaje(partida.avancePct) }}</td>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">
+              {{ porcentaje(partida.avancePct) }}
+            </td>
           </ng-container>
           <ng-container matColumnDef="precioUnitario">
             <th mat-header-cell *matHeaderCellDef class="numero">P. unit.</th>
-            <td mat-cell *matCellDef="let partida" class="numero sv-numero">{{ monto(partida.precioUnitario) }}</td>
+            <td mat-cell *matCellDef="let partida" class="numero sv-numero">
+              {{ monto(partida.precioUnitario) }}
+            </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
           <tr mat-row *matRowDef="let fila; columns: columnas"></tr>

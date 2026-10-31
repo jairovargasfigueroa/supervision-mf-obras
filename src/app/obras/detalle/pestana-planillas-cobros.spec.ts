@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
@@ -19,7 +20,10 @@ describe('PestanaPlanillasComponent', () => {
   function montar(planillas: () => Observable<PlanillaResumen[]>, puedeCrear = false) {
     TestBed.configureTestingModule({
       imports: [PestanaPlanillasComponent],
-      providers: [provideRouter([]), { provide: ObrasService, useValue: { planillas } }],
+      providers: [
+        provideRouter([]),
+        { provide: ObrasService, useValue: desdeLaRed({ planillas }) },
+      ],
     });
     const fixture = TestBed.createComponent(PestanaPlanillasComponent);
     fixture.componentRef.setInput('obraId', 'b1');
@@ -31,8 +35,22 @@ describe('PestanaPlanillasComponent', () => {
   it('lista número, periodo, estado, neto y número de cobro (008), la más reciente primero (criterio 3)', () => {
     const { elemento } = montar(() =>
       of<PlanillaResumen[]>([
-        { id: 'pl1', numero: 1, periodo: '2026-11', estado: 'APROBADA', neto: 84630.5, cobroNumero: 'COB-2026-0001' },
-        { id: 'pl2', numero: 2, periodo: '2026-12', estado: 'PRESENTADA', neto: 120000, cobroNumero: null },
+        {
+          id: 'pl1',
+          numero: 1,
+          periodo: '2026-11',
+          estado: 'APROBADA',
+          neto: 84630.5,
+          cobroNumero: 'COB-2026-0001',
+        },
+        {
+          id: 'pl2',
+          numero: 2,
+          periodo: '2026-12',
+          estado: 'PRESENTADA',
+          neto: 120000,
+          cobroNumero: null,
+        },
       ]),
     );
     expect(elemento.querySelector('tr.mat-mdc-header-row')?.textContent).toContain('Cobro');
@@ -46,7 +64,9 @@ describe('PestanaPlanillasComponent', () => {
 
   it('«Nueva planilla» solo para el residente asignado (007, criterios 1 y 10)', () => {
     const conBoton = montar(() => of([]), true).elemento;
-    expect(conBoton.querySelector('a[href="/planillas/nueva"]')?.textContent).toContain('Nueva planilla');
+    expect(conBoton.querySelector('a[href="/planillas/nueva"]')?.textContent).toContain(
+      'Nueva planilla',
+    );
     TestBed.resetTestingModule();
     expect(montar(() => of([])).elemento.textContent).not.toContain('Nueva planilla');
   });
@@ -58,7 +78,12 @@ describe('PestanaPlanillasComponent', () => {
   it('mientras el gateway no expone `planillas` (007) muestra el estado vacío, no un error', () => {
     const error = new CombinedGraphQLErrors({
       data: null,
-      errors: [{ message: 'Cannot query field "planillas" on type "Obra".', extensions: { code: 'GRAPHQL_VALIDATION_FAILED' } }],
+      errors: [
+        {
+          message: 'Cannot query field "planillas" on type "Obra".',
+          extensions: { code: 'GRAPHQL_VALIDATION_FAILED' },
+        },
+      ],
     });
     const { elemento } = montar(() => throwError(() => error));
     expect(elemento.textContent).toContain('Aún no hay planillas.');
@@ -69,7 +94,12 @@ describe('PestanaPlanillasComponent', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new CombinedGraphQLErrors({
       data: null,
-      errors: [{ message: 'x', extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'obras', estado: 503 } }],
+      errors: [
+        {
+          message: 'x',
+          extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'obras', estado: 503 },
+        },
+      ],
     });
     const respuestas: Observable<PlanillaResumen[]>[] = [throwError(() => error), of([])];
     const { fixture, elemento } = montar(() => respuestas.shift()!);
@@ -84,7 +114,7 @@ describe('PestanaCobrosComponent', () => {
   function montar(cobros: () => Observable<Cobro[] | null>) {
     TestBed.configureTestingModule({
       imports: [PestanaCobrosComponent],
-      providers: [{ provide: ObrasService, useValue: { cobros } }],
+      providers: [{ provide: ObrasService, useValue: desdeLaRed({ cobros }) }],
     });
     const fixture = TestBed.createComponent(PestanaCobrosComponent);
     fixture.componentRef.setInput('obraId', 'b1');

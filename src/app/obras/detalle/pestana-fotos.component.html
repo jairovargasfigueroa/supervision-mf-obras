@@ -1,5 +1,10 @@
+@if (guardadoEn(); as guardadoEn) {
+  <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+}
 @if (estado() === 'cargando') {
   <p class="cargando">Cargando fotos…</p>
+} @else if (estado() === 'sin-datos') {
+  <app-aviso-sin-conexion />
 } @else if (estado() === 'error') {
   <app-estado-error (reintentar)="cargar()" />
 } @else if (grupos().length === 0) {

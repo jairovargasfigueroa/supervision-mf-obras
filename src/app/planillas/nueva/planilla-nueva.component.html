@@ -39,9 +39,16 @@
 
       <div class="acciones">
         <a mat-button [routerLink]="[obraId()]" [relativeTo]="base">Cancelar</a>
-        <button mat-flat-button type="button" [disabled]="creando()" (click)="crear()">
-          {{ creando() ? 'Creando…' : 'Crear planilla' }}
-        </button>
+        <app-requiere-conexion>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="creando() || !conexion.enLinea()"
+            (click)="crear()"
+          >
+            {{ creando() ? 'Creando…' : 'Crear planilla' }}
+          </button>
+        </app-requiere-conexion>
       </div>
     </section>
   }

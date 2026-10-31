@@ -25,6 +25,8 @@ import type { PlanillaResumen } from '../../obras/obras.graphql';
 import { ObrasService } from '../../obras/obras.service';
 import type { ObraDePlanilla } from '../planillas.graphql';
 import { PlanillasService } from '../planillas.service';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 /** El usuario es el residente asignado a la obra: solo él elabora y presenta planillas (criterio 10). */
 export function esResidenteAsignado(
@@ -44,6 +46,7 @@ export function esResidenteAsignado(
 @Component({
   selector: 'app-planilla-nueva',
   imports: [
+    RequiereConexionComponent,
     AvisoSinConexionComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -58,6 +61,7 @@ export function esResidenteAsignado(
   styleUrl: '../planillas.scss',
 })
 export class PlanillaNuevaComponent implements OnInit {
+  protected readonly conexion = inject(ConexionService);
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(PlanillasService);
   private readonly obras = inject(ObrasService);

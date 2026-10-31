@@ -34,6 +34,8 @@ import { esResidenteAsignado } from '../nueva/planilla-nueva.component';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
 import { PlanillasService } from '../planillas.service';
 import { calcularLinea, calcularTotales, type LineaCalculada, type Totales } from './totales';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 /** Texto de la fila que supera lo contratado (criterio 5); el saldo es lo que todavía se puede medir. */
 export function mensajeSupera(saldoDisponible: number): string {
@@ -56,6 +58,7 @@ export const MENSAJE_FILAS_SUPERAN =
 @Component({
   selector: 'app-planilla-editor',
   imports: [
+    RequiereConexionComponent,
     AvisoSinConexionComponent,
     ReactiveFormsModule,
     RouterLink,
@@ -73,6 +76,7 @@ export const MENSAJE_FILAS_SUPERAN =
   styleUrls: ['../planillas.scss', './planilla-editor.component.scss'],
 })
 export class PlanillaEditorComponent implements OnInit {
+  protected readonly conexion = inject(ConexionService);
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(PlanillasService);
   private readonly ruta = inject(ActivatedRoute);
@@ -180,7 +184,9 @@ export class PlanillaEditorComponent implements OnInit {
       !this.hayFilasQueSuperan() &&
       this.cantidadesValidas() &&
       (this.totales()?.subtotal ?? 0) > 0 &&
-      this.ocupado() === null,
+      this.ocupado() === null &&
+      // 104, criterio 17: «Presentar» requiere conexión
+      this.conexion.enLinea(),
   );
   protected readonly errorAccion = signal('');
   /** Otra persona guardó la planilla antes: se ofrece «Recargar» (criterio 7). */

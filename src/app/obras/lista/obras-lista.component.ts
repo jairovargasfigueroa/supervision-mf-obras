@@ -25,6 +25,8 @@ import { formatearFecha, formatearPorcentaje } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
 import type { EstadoObra, FiltrosObras, ObraResumen } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 /** Espera tras la última tecla antes de buscar por nombre. */
 export const ESPERA_BUSQUEDA_MS = 300;
@@ -36,6 +38,7 @@ export const ESPERA_BUSQUEDA_MS = 300;
 @Component({
   selector: 'app-obras-lista',
   imports: [
+    RequiereConexionComponent,
     RouterLink,
     ReactiveFormsModule,
     MatButtonModule,
@@ -54,6 +57,7 @@ export const ESPERA_BUSQUEDA_MS = 300;
 })
 export class ObrasListaComponent implements OnInit {
   protected readonly sesion = inject(SesionService);
+  protected readonly conexion = inject(ConexionService);
   private readonly servicio = inject(ObrasService);
   private readonly router = inject(Router);
   private readonly ruta = inject(ActivatedRoute);

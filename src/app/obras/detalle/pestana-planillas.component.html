@@ -1,9 +1,11 @@
 @if (puedeCrear()) {
   <div class="herramientas">
-    <a mat-flat-button routerLink="planillas/nueva">
-      <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
-      Nueva planilla
-    </a>
+    <app-requiere-conexion>
+      <a mat-flat-button routerLink="planillas/nueva" [disabled]="!conexion.enLinea()">
+        <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+        Nueva planilla
+      </a>
+    </app-requiere-conexion>
   </div>
 }
 @if (guardadoEn(); as guardadoEn) {

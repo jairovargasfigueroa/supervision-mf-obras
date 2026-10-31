@@ -21,6 +21,8 @@ import { esCampoNoExpuesto, leerError, registrarError } from '../../nucleo/error
 import { formatearMonto, formatearPeriodo } from '../../nucleo/formato';
 import type { PlanillaResumen } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 
 /**
  * Pestaña «Planillas» (006, criterio 3): número, periodo, estado y neto, la más reciente primero. Las planillas llegan
@@ -32,6 +34,7 @@ import { ObrasService } from '../obras.service';
 @Component({
   selector: 'app-pestana-planillas',
   imports: [
+    RequiereConexionComponent,
     RouterLink,
     MatButtonModule,
     MatIconModule,
@@ -51,6 +54,7 @@ export class PestanaPlanillasComponent implements OnInit {
   readonly puedeCrear = input(false);
 
   private readonly servicio = inject(ObrasService);
+  protected readonly conexion = inject(ConexionService);
   /** Rutas del microfrontend (/obras en el ERP): el editor está en planillas/{id} (007). */
   protected readonly base = inject(ActivatedRoute).parent ?? null;
   private readonly destruir = inject(DestroyRef);

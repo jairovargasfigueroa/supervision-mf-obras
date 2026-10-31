@@ -199,15 +199,22 @@
         <button mat-stroked-button type="button" [disabled]="!puedeGuardar()" (click)="guardar()">
           {{ ocupado() === 'guardando' ? 'Guardando…' : 'Guardar' }}
         </button>
-        <button mat-flat-button type="button" [disabled]="!puedePresentar()" (click)="presentar()">
-          {{
-            ocupado() === 'presentando'
-              ? 'Presentando…'
-              : planilla.estado === 'OBSERVADA'
-                ? 'Volver a presentar'
-                : 'Presentar'
-          }}
-        </button>
+        <app-requiere-conexion>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="!puedePresentar()"
+            (click)="presentar()"
+          >
+            {{
+              ocupado() === 'presentando'
+                ? 'Presentando…'
+                : planilla.estado === 'OBSERVADA'
+                  ? 'Volver a presentar'
+                  : 'Presentar'
+            }}
+          </button>
+        </app-requiere-conexion>
       </div>
     }
   }

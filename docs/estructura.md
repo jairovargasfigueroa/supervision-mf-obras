@@ -39,7 +39,7 @@ src/
       editor/       planilla-editor.component.ts (+ .html, .scss), totales.ts (cálculo puro, solo ayuda visual)
       planillas.graphql.ts, planillas.service.ts
       planillas.scss                 # estilos comunes de nueva y editor
-    compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»)
+    compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»), requiere-conexion.component.ts (104: ayuda «Requiere conexión» de los botones que escriben)
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```
 

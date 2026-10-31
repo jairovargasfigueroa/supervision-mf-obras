@@ -2,10 +2,12 @@
   <header class="titulo">
     <h1>Obras</h1>
     @if (sesion.dentroDelErp() && esAdmin()) {
-      <a mat-flat-button routerLink="nueva">
-        <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
-        Nueva obra
-      </a>
+      <app-requiere-conexion>
+        <a mat-flat-button routerLink="nueva" [disabled]="!conexion.enLinea()">
+          <mat-icon fontSet="material-symbols-outlined">add</mat-icon>
+          Nueva obra
+        </a>
+      </app-requiere-conexion>
     }
   </header>
 
@@ -49,7 +51,7 @@
       <app-estado-vacio
         texto="Aún no hay obras."
         icono="apartment"
-        [accion]="esAdmin() ? 'Registrar obra' : undefined"
+        [accion]="esAdmin() && conexion.enLinea() ? 'Registrar obra' : undefined"
         (pulsado)="registrar()"
       />
     } @else {

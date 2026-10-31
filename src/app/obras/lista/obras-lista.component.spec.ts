@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { desdeLaRed } from '../../nucleo/plataforma-falsa';
+import { desdeLaRed, instalarPlataformaFalsa } from '../../nucleo/plataforma-falsa';
 import { provideRouter } from '@angular/router';
 import { of, throwError, type Observable } from 'rxjs';
 import type { FiltrosObras, ObraResumen } from '../obras.graphql';
@@ -208,6 +208,27 @@ describe('ObrasListaComponent', () => {
       const elemento = montarConRespaldo(null);
       expect(elemento.textContent).toContain('No hay datos guardados de esta pantalla');
       expect(elemento.textContent).not.toContain('Aún no hay obras');
+    });
+
+    it('sin conexión deshabilita «Nueva obra» con «Requiere conexión»', () => {
+      instalarPlataformaFalsa({
+        enLinea: false,
+        usuario: { id: 'a1', nombre: 'Admin', roles: ['admin'] },
+      });
+      const elemento = montarConRespaldo({
+        datos: [],
+        desdeEquipo: true,
+        guardadoEn: '2026-11-15T18:30:00Z',
+      });
+      const nueva = elemento.querySelector<HTMLAnchorElement>(
+        'a[routerLink="nueva"], a[href="/nueva"]',
+      )!;
+      expect(nueva.textContent).toContain('Nueva obra');
+      expect(nueva.getAttribute('aria-disabled')).toBe('true');
+      expect(elemento.querySelector('app-requiere-conexion span')?.getAttribute('aria-label')).toBe(
+        'Requiere conexión',
+      );
+      expect(elemento.textContent).not.toContain('Registrar obra');
     });
   });
 });

@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
@@ -20,10 +21,18 @@ import {
   type EstadoMostrable,
 } from '../../compartido/estado-chip.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
+import { RequiereConexionComponent } from '../../compartido/requiere-conexion.component';
+import { ConexionService } from '../../nucleo/conexion.service';
 import { AVISO_IA_NO_DISPONIBLE, leerError, registrarError } from '../../nucleo/errores';
 import { formatearCantidad, formatearFechaHora, formatearNumero } from '../../nucleo/formato';
 import type { ConsumoAtipico, EstadoRevision, Partida } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
+import {
+  RevisionDialogoComponent,
+  type DatosRevisionDialogo,
+  type DecisionRevision,
+  type ResultadoRevision,
+} from './revision-dialogo.component';
 
 /** Filtro de la sección: un estado de revisión o todos (403, criterio 6). */
 export type FiltroRevision = EstadoRevision | 'TODOS';
@@ -53,7 +62,8 @@ export function puntajeConsumo(puntaje: number): { texto: string; ancho: number 
  * con su propio manejo de error: fecha y hora, material, partida (código de las partidas que ya trae el detalle),
  * cantidad, puntaje, motivos y estado; por defecto los PENDIENTE, con filtro por estado. Si IA no responde muestra
  * «—» con «Datos de IA no disponibles» y el resto de la pestaña sigue normal (criterio 12). Es otra señal que el
- * «Excedido» de la comparación (criterio 5).
+ * «Excedido» de la comparación (criterio 5). El residente asignado y `admin` marcan los PENDIENTE como «Es normal» o
+ * «Confirmar problema» (criterios 7 a 9); `gerente` solo los ve.
  */
 @Component({
   selector: 'app-consumos-atipicos',
@@ -65,6 +75,7 @@ export function puntajeConsumo(puntaje: number): { texto: string; ancho: number 
     MatFormFieldModule,
     MatSelectModule,
     MatTableModule,
+    RequiereConexionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './consumos-atipicos.component.html',
@@ -74,9 +85,13 @@ export class ConsumosAtipicosComponent implements OnInit {
   readonly obraId = input.required<string>();
   /** Partidas del detalle: dan el código de la partida de cada salida. */
   readonly partidas = input.required<Pick<Partida, 'id' | 'codigo'>[]>();
+  /** Residente asignado o admin (criterio 7): ven «Es normal» y «Confirmar problema» en los PENDIENTE. */
+  readonly puedeRevisar = input(false);
 
   private readonly servicio = inject(ObrasService);
   private readonly destruir = inject(DestroyRef);
+  private readonly dialogos = inject(MatDialog);
+  protected readonly conexion = inject(ConexionService);
 
   protected readonly filtros = FILTROS_REVISION;
   protected readonly filtro = signal<FiltroRevision>('PENDIENTE');
@@ -85,11 +100,13 @@ export class ConsumosAtipicosComponent implements OnInit {
   protected readonly guardadoEn = signal<string | null>(null);
   protected readonly consumos = signal<ConsumoAtipico[]>([]);
   protected readonly avisoIa = AVISO_IA_NO_DISPONIBLE;
+  /** «Este consumo ya fue revisado» (criterio 8) u otro aviso que recarga la lista. */
+  protected readonly aviso = signal<string | null>(null);
 
   protected readonly codigos = computed(
     () => new Map(this.partidas().map((partida) => [partida.id, partida.codigo])),
   );
-  protected readonly columnas = [
+  protected readonly columnas = computed(() => [
     'fecha',
     'material',
     'partida',
@@ -97,7 +114,8 @@ export class ConsumosAtipicosComponent implements OnInit {
     'puntaje',
     'motivos',
     'estado',
-  ];
+    ...(this.puedeRevisar() ? ['acciones'] : []),
+  ]);
   protected readonly fechaHora = formatearFechaHora;
   protected readonly cantidad = cantidadConsumo;
   protected readonly puntaje = puntajeConsumo;
@@ -114,7 +132,29 @@ export class ConsumosAtipicosComponent implements OnInit {
 
   elegir(filtro: FiltroRevision): void {
     this.filtro.set(filtro);
+    this.aviso.set(null);
     this.cargar();
+  }
+
+  /** Abre el diálogo del comentario; al guardar (o si ya estaba revisado) vuelve a pedir la lista. */
+  revisar(consumo: ConsumoAtipico, estado: DecisionRevision): void {
+    this.aviso.set(null);
+    const datos: DatosRevisionDialogo = {
+      estado,
+      enviar: (comentario) => this.servicio.revisarConsumoAtipico(consumo.id, estado, comentario),
+    };
+    this.dialogos
+      .open<RevisionDialogoComponent, DatosRevisionDialogo, ResultadoRevision>(
+        RevisionDialogoComponent,
+        { data: datos, autoFocus: 'textarea' },
+      )
+      .afterClosed()
+      .pipe(takeUntilDestroyed(this.destruir))
+      .subscribe((resultado) => {
+        if (!resultado) return;
+        if (resultado.tipo === 'aviso') this.aviso.set(resultado.mensaje);
+        this.cargar();
+      });
   }
 
   cargar(): void {

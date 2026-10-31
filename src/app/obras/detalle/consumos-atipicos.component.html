@@ -13,6 +13,9 @@
   Detectado por comparación con el consumo habitual; es distinto de "excedido sobre lo previsto"
 </p>
 
+@if (aviso(); as aviso) {
+  <div class="aviso aviso-atencion" role="alert">{{ aviso }}</div>
+}
 @if (guardadoEn(); as guardadoEn) {
   <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
 }
@@ -99,8 +102,37 @@
           }
         </td>
       </ng-container>
-      <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-      <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef><span class="oculto">Acciones</span></th>
+        <td mat-cell *matCellDef="let consumo">
+          @if (consumo.estadoRevision === 'PENDIENTE') {
+            <span class="acciones">
+              <app-requiere-conexion>
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="!conexion.enLinea()"
+                  (click)="revisar(consumo, 'NORMAL')"
+                >
+                  Es normal
+                </button>
+              </app-requiere-conexion>
+              <app-requiere-conexion>
+                <button
+                  mat-flat-button
+                  type="button"
+                  [disabled]="!conexion.enLinea()"
+                  (click)="revisar(consumo, 'CONFIRMADO')"
+                >
+                  Confirmar problema
+                </button>
+              </app-requiere-conexion>
+            </span>
+          }
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="columnas()"></tr>
+      <tr mat-row *matRowDef="let fila; columns: columnas()"></tr>
     </table>
   </div>
 }

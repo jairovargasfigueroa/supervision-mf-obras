@@ -67,6 +67,8 @@ export class PestanaMaterialComponent implements OnInit {
   readonly fechaInicio = input.required<string>();
   /** Partidas del detalle: códigos de la sección «Consumos atípicos» (403). */
   readonly partidas = input.required<Pick<Partida, 'id' | 'codigo'>[]>();
+  /** Residente asignado o admin: revisan los consumos atípicos (403, criterio 7). */
+  readonly puedeRevisarAtipicos = input(false);
 
   private readonly servicio = inject(ObrasService);
   private readonly destruir = inject(DestroyRef);

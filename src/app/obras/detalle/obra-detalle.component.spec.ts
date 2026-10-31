@@ -109,6 +109,7 @@ function montar(obtener: (id: string) => Observable<Obra | null>, opciones: Opci
           fotos: () => of({ items: [], total: 0, pagina: 1, tamano: 50 }),
           planillas: () => of([]),
           cobros: () => of([]),
+          consumosAtipicos: () => of([]),
           ...opciones.pestanas,
         }),
       },

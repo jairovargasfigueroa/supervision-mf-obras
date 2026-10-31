@@ -3,6 +3,7 @@ import { Apollo } from 'apollo-angular';
 import { map, type Observable } from 'rxjs';
 import {
   CONSULTA_COBROS,
+  CONSULTA_CONSUMOS_ATIPICOS,
   CONSULTA_FINANZAS_OBRA,
   CONSULTA_FOTOS,
   CONSULTA_MATERIAL_COMPARADO,
@@ -11,8 +12,11 @@ import {
   CONSULTA_PLANILLAS,
   CONSULTA_USUARIOS,
   MUTACION_REGISTRAR_OBRA,
+  MUTACION_REVISAR_CONSUMO_ATIPICO,
   type Cobro,
   type ComparacionMaterial,
+  type ConsumoAtipico,
+  type EstadoRevision,
   type EstadoObra,
   type FiltrosObras,
   type FinanzasObra,
@@ -162,6 +166,40 @@ export class ObrasService {
           .pipe(map((resultado) => resultado.data?.obra?.cobros ?? null)),
       ),
     );
+  }
+
+  /**
+   * Consumos atípicos de la obra (403), de la más reciente a la más antigua; sin `estado`, todos. Si IA no responde,
+   * el campo llega en null con error y se entrega el error (la sección muestra «—» con su aviso).
+   */
+  consumosAtipicos(
+    id: string,
+    estado: EstadoRevision | null,
+  ): Observable<ConRespaldo<ConsumoAtipico[]> | null> {
+    const variables = estado ? { id, estado } : { id };
+    return this.respaldo.consultaConRespaldo(
+      claveConsulta(CONSULTA_CONSUMOS_ATIPICOS, variables),
+      () =>
+        completa(
+          this.apollo
+            .query({ query: CONSULTA_CONSUMOS_ATIPICOS, variables, fetchPolicy: 'network-only' })
+            .pipe(map((resultado) => resultado.data?.obra?.consumosAtipicos ?? [])),
+        ),
+    );
+  }
+
+  /** Marca un consumo atípico como NORMAL o CONFIRMADO (403); el comentario va solo si se escribió. */
+  revisarConsumoAtipico(
+    id: string,
+    estado: Exclude<EstadoRevision, 'PENDIENTE'>,
+    comentario: string | null,
+  ): Observable<ConsumoAtipico> {
+    return this.apollo
+      .mutate({
+        mutation: MUTACION_REVISAR_CONSUMO_ATIPICO,
+        variables: comentario ? { id, estado, comentario } : { id, estado },
+      })
+      .pipe(map((resultado) => resultado.data!.revisarConsumoAtipico));
   }
 
   registrar(entrada: RegistrarObraEntrada): Observable<{ id: string; estado: EstadoObra }> {

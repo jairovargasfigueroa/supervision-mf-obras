@@ -181,7 +181,11 @@
     <mat-tab-group class="pestanas" mat-stretch-tabs="false" mat-align-tabs="start">
       <mat-tab label="Material">
         <ng-template matTabContent>
-          <app-pestana-material [obraId]="obra.id" [fechaInicio]="obra.fechaInicio" />
+          <app-pestana-material
+            [obraId]="obra.id"
+            [fechaInicio]="obra.fechaInicio"
+            [partidas]="obra.partidas"
+          />
         </ng-template>
       </mat-tab>
       <mat-tab label="Fotos">

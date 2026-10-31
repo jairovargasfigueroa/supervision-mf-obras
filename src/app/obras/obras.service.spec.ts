@@ -3,7 +3,13 @@ import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/testing';
 import { print } from 'graphql';
 import { firstValueFrom } from 'rxjs';
-import { CONSULTA_MATERIAL_COMPARADO, CONSULTA_OBRA, CONSULTA_OBRAS } from './obras.graphql';
+import {
+  CONSULTA_CONSUMOS_ATIPICOS,
+  CONSULTA_MATERIAL_COMPARADO,
+  CONSULTA_OBRA,
+  CONSULTA_OBRAS,
+  MUTACION_REVISAR_CONSUMO_ATIPICO,
+} from './obras.graphql';
 import { instalarPlataformaFalsa, type PlataformaFalsa } from '../nucleo/plataforma-falsa';
 import { ObrasService } from './obras.service';
 
@@ -131,6 +137,52 @@ describe('ObrasService', () => {
     });
     const error = await respuesta.catch((e: unknown) => e);
     expect(CombinedGraphQLErrors.is(error)).toBe(true);
+  });
+
+  describe('consumos atípicos (403)', () => {
+    it('pide el estado elegido y, con «Todos», ninguno', async () => {
+      const pendientes = firstValueFrom(servicio.consumosAtipicos('b1', 'PENDIENTE'));
+      const primera = gateway.expectOne(CONSULTA_CONSUMOS_ATIPICOS);
+      expect(primera.operation.variables).toEqual({ id: 'b1', estado: 'PENDIENTE' });
+      expect(print(primera.operation.query)).toContain('consumosAtipicos(estado: $estado)');
+      primera.flushData({ obra: { __typename: 'Obra', id: 'b1', consumosAtipicos: [] } });
+      expect((await pendientes)?.datos).toEqual([]);
+
+      const todos = firstValueFrom(servicio.consumosAtipicos('b1', null));
+      const segunda = gateway.expectOne(CONSULTA_CONSUMOS_ATIPICOS);
+      expect(segunda.operation.variables).toEqual({ id: 'b1' });
+      segunda.flushData({ obra: { __typename: 'Obra', id: 'b1', consumosAtipicos: [] } });
+      await todos;
+    });
+
+    it('si IA no responde entrega el error (la sección muestra «—»)', async () => {
+      const respuesta = firstValueFrom(servicio.consumosAtipicos('b1', 'PENDIENTE'));
+      gateway.expectOne(CONSULTA_CONSUMOS_ATIPICOS).flush({
+        data: { obra: { __typename: 'Obra', id: 'b1', consumosAtipicos: null } },
+        errors: [
+          {
+            message: 'IA no responde',
+            path: ['obra', 'consumosAtipicos'],
+            extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'ia', estado: 503 },
+          },
+        ],
+      });
+      await expect(respuesta).rejects.toSatisfy(CombinedGraphQLErrors.is);
+    });
+
+    it('revisarConsumoAtipico manda el comentario solo si se escribió', () => {
+      servicio.revisarConsumoAtipico('c1', 'NORMAL', null).subscribe();
+      expect(gateway.expectOne(MUTACION_REVISAR_CONSUMO_ATIPICO).operation.variables).toEqual({
+        id: 'c1',
+        estado: 'NORMAL',
+      });
+      servicio.revisarConsumoAtipico('c1', 'CONFIRMADO', 'Se usó en otra obra').subscribe();
+      expect(gateway.expectOne(MUTACION_REVISAR_CONSUMO_ATIPICO).operation.variables).toEqual({
+        id: 'c1',
+        estado: 'CONFIRMADO',
+        comentario: 'Se usó en otra obra',
+      });
+    });
   });
 
   describe('con respaldo en el equipo (104)', () => {

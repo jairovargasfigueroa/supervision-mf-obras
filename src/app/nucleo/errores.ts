@@ -40,7 +40,14 @@ const MENSAJES: Record<string, string> = {
   FOTO_FUERA_DEL_PERIODO: 'Una de las fotos adjuntas no es de este periodo. Quítala para guardar.',
   SUBTOTAL_CERO:
     'No se puede presentar una planilla con subtotal 0. Indica las cantidades ejecutadas del periodo.',
+  // Consumos atípicos (403)
+  CONSUMO_ATIPICO_NO_ENCONTRADO: 'No encontramos ese consumo atípico.',
+  REVISION_YA_REGISTRADA: 'Este consumo ya fue revisado',
+  COMENTARIO_INVALIDO: 'Revisa el comentario.',
 };
+
+/** «—» con este aviso cuando el servicio de IA no responde (402 y 403, criterio 12). */
+export const AVISO_IA_NO_DISPONIBLE = 'Datos de IA no disponibles';
 
 const GENERICOS_POR_ESTADO: Record<number, string> = {
   400: MENSAJES['DATOS_INVALIDOS'],

@@ -10,6 +10,7 @@ const OBRA: ObraResumen = {
   id: 'b1',
   nombre: 'Edificio Las Palmas',
   ubicacion: 'Santa Cruz',
+  zona: null,
   estado: 'EN_EJECUCION',
   fechaInicio: '2026-11-01',
   avancePct: 32.5,
@@ -67,6 +68,14 @@ describe('ObrasListaComponent', () => {
       expect(texto).toContain('En ejecución');
       expect(texto).not.toContain('En riesgo');
       expect(elemento.querySelector('a.obra')?.getAttribute('href')).toBe('/b1');
+    });
+
+    it('muestra la zona de cada obra, o «Sin zona» (401, criterio 2)', () => {
+      const { elemento } = montar(() => of([OBRA, { ...OBRA, id: 'b2', zona: 'NORTE' }]));
+      const secundarios = [...elemento.querySelectorAll('a.obra .secundario')].map((s) =>
+        s.textContent?.trim(),
+      );
+      expect(secundarios).toEqual(['Santa Cruz · Sin zona', 'Santa Cruz · Zona Norte']);
     });
 
     it('una obra en riesgo lleva la etiqueta «En riesgo» (criterio 1)', () => {

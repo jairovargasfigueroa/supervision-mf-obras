@@ -11,6 +11,7 @@ const OBRA: Obra = {
   id: 'b1',
   nombre: 'Edificio Las Palmas',
   ubicacion: 'Santa Cruz',
+  zona: null,
   estado: 'SIN_CONTRATO',
   fechaInicio: '2026-11-01',
   motivoRechazoContrato: null,
@@ -277,13 +278,20 @@ describe('ObraDetalleComponent', () => {
       const { elemento } = await abrir(EN_EJECUCION);
       const encabezado = texto(elemento.querySelector('header.encabezado')!);
       expect(encabezado).toContain('Edificio Las Palmas');
-      expect(encabezado).toContain('Santa Cruz · Inicio 01/11/2026');
+      expect(encabezado).toContain('Santa Cruz · Sin zona · Inicio 01/11/2026');
       expect(encabezado).toContain('En ejecución');
       expect(encabezado).toContain('En riesgo');
       expect(encabezado).toContain('Residente Rosa Vaca');
       expect(encabezado).toContain('Maestro de obra Mario Quispe');
       expect(encabezado).toContain('Almacenero Juan Rojas');
       expect(encabezado).toContain('Cliente Inmobiliaria Sur');
+    });
+
+    it('el encabezado muestra la zona de la obra (401, criterio 2)', async () => {
+      const { elemento } = await abrir({ ...EN_EJECUCION, zona: 'CENTRO' });
+      expect(texto(elemento.querySelector('header.encabezado')!)).toContain(
+        'Santa Cruz · Zona Centro · Inicio 01/11/2026',
+      );
     });
 
     it('sin riesgo no muestra la etiqueta', async () => {

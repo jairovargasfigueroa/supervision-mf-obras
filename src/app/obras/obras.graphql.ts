@@ -9,10 +9,15 @@ export type EstadoCobro = 'PENDIENTE' | 'VENCIDO';
 
 export type Rol = 'admin' | 'residente' | 'gerente' | 'maestro' | 'almacenero' | 'cliente';
 
+/** Zona de la obra (401, decisión del equipo); opcional: null = «Sin zona». */
+export type ZonaObra = 'NORTE' | 'SUR' | 'ESTE' | 'OESTE' | 'CENTRO';
+
 export interface ObraResumen {
   id: string;
   nombre: string;
   ubicacion: string;
+  /** 401 */
+  zona: ZonaObra | null;
   estado: EstadoObra;
   fechaInicio: string;
   avancePct: number;
@@ -47,6 +52,8 @@ export interface Obra {
   id: string;
   nombre: string;
   ubicacion: string;
+  /** 401 */
+  zona: ZonaObra | null;
   estado: EstadoObra;
   fechaInicio: string;
   motivoRechazoContrato: string | null;
@@ -135,6 +142,8 @@ export interface Cobro {
 export interface RegistrarObraEntrada {
   nombre: string;
   ubicacion: string;
+  /** 401: se omite si no se eligió. */
+  zona?: ZonaObra;
   fechaInicio: string;
   asignaciones: { residenteId: string; maestroId: string; almaceneroId: string; clienteId: string };
   contrato: { monto: number; plazoDias: number; anticipoPct: number; retencionPct: number; firmadoEn: string };
@@ -161,6 +170,7 @@ export const CONSULTA_OBRAS = gql<{ obras: ObraResumen[] }, FiltrosObras>`
       id
       nombre
       ubicacion
+      zona
       estado
       fechaInicio
       avancePct
@@ -186,6 +196,7 @@ export const CONSULTA_OBRA = gql<{ obra: Obra | null }, { id: string }>`
       id
       nombre
       ubicacion
+      zona
       estado
       fechaInicio
       motivoRechazoContrato

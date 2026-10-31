@@ -61,7 +61,7 @@
             <a class="obra" [routerLink]="obra.id">
               <span class="datos">
                 <strong>{{ obra.nombre }}</strong>
-                <span class="secundario">{{ obra.ubicacion }}</span>
+                <span class="secundario">{{ obra.ubicacion }} · {{ zona(obra.zona) }}</span>
                 <span class="indicadores">
                   Inicio {{ fecha(obra.fechaInicio) }} · Avance {{ porcentaje(obra.avancePct) }} ·
                   Plazo transcurrido

@@ -21,7 +21,7 @@ import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.c
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, registrarError } from '../../nucleo/errores';
-import { formatearFecha, formatearPorcentaje } from '../../nucleo/formato';
+import { formatearFecha, formatearPorcentaje, formatearZona } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
 import type { EstadoObra, FiltrosObras, ObraResumen } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
@@ -32,8 +32,8 @@ import { ConexionService } from '../../nucleo/conexion.service';
 export const ESPERA_BUSQUEDA_MS = 300;
 
 /**
- * Lista de obras (006, criterios 1 y 2): las que el usuario puede ver, con estado, avance, plazo transcurrido y la
- * etiqueta «En riesgo». Filtra por estado y busca por nombre en el gateway.
+ * Lista de obras (006, criterios 1 y 2): las que el usuario puede ver, con zona (401), estado, avance, plazo
+ * transcurrido y la etiqueta «En riesgo». Filtra por estado y busca por nombre en el gateway.
  */
 @Component({
   selector: 'app-obras-lista',
@@ -80,6 +80,7 @@ export class ObrasListaComponent implements OnInit {
   protected readonly conFiltros = signal(false);
   protected readonly fecha = formatearFecha;
   protected readonly porcentaje = formatearPorcentaje;
+  protected readonly zona = formatearZona;
 
   private consulta?: Subscription;
 

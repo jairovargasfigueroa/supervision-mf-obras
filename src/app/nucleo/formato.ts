@@ -1,3 +1,5 @@
+import type { ZonaObra } from '../obras/obras.graphql';
+
 // Formatos de docs/diseno-visual.md («Formatos»): locale es-BO y hora de La Paz.
 const LOCALE = 'es-BO';
 const ZONA_NEGOCIO = 'America/La_Paz';
@@ -84,4 +86,18 @@ const diasHoras = new Intl.DateTimeFormat(LOCALE, {
 /** `15/11 14:30` en hora de La Paz (borrador local de la 104). */
 export function formatearDiaHora(instante: string): string {
   return diasHoras.format(new Date(instante)).replace(', ', ' ');
+}
+
+/** Nombre de cada zona (401, criterio 1), en el orden del selector. */
+export const ETIQUETA_ZONA: Record<ZonaObra, string> = {
+  NORTE: 'Norte',
+  SUR: 'Sur',
+  ESTE: 'Este',
+  OESTE: 'Oeste',
+  CENTRO: 'Centro',
+};
+
+/** `Zona Norte`, o `Sin zona` si la obra no la tiene (401, criterio 2). */
+export function formatearZona(zona: ZonaObra | null | undefined): string {
+  return zona ? `Zona ${ETIQUETA_ZONA[zona]}` : 'Sin zona';
 }

@@ -632,4 +632,54 @@ describe('PlanillaEditorComponent (borrador local, 104)', () => {
     expect(plataforma!.borradores.has('pl1')).toBe(false);
     expect(elemento.textContent).not.toContain('Borrador local sin enviar');
   });
+
+  const dialogo = () => document.querySelector('mat-dialog-container');
+  const botonDialogo = (texto: string) =>
+    [...document.querySelectorAll<HTMLButtonElement>('mat-dialog-container button')].find((b) =>
+      b.textContent?.includes(texto),
+    );
+  afterEach(() =>
+    document.querySelectorAll('.cdk-overlay-container').forEach((nodo) => nodo.remove()),
+  );
+
+  it('un borrador en CONFLICTO ofrece aplicarlo sobre la última versión o descartarlo', async () => {
+    const { plataforma, esperar } = montarEditor({
+      plataforma: { borradores: [borradorLocal({ estadoEnvio: 'CONFLICTO' })] },
+    });
+    await esperar();
+
+    expect(dialogo()?.textContent).toContain('La planilla cambió en el servidor');
+    expect(botonDialogo('Aplicar mi borrador sobre la última versión')).toBeTruthy();
+    botonDialogo('Descartar mi borrador')!.click();
+    await vi.waitFor(() => expect(plataforma!.borradores.has('pl1')).toBe(false));
+  });
+
+  it('un borrador NO_EDITABLE solo se puede descartar y dice el estado actual', async () => {
+    const { esperar } = montarEditor({
+      planilla: { estado: 'PRESENTADA' },
+      plataforma: { borradores: [borradorLocal({ estadoEnvio: 'NO_EDITABLE' })] },
+    });
+    await esperar();
+
+    expect(dialogo()?.textContent).toContain(
+      'La planilla ya no se puede editar (estado Presentada)',
+    );
+    expect(botonDialogo('Aplicar')).toBeUndefined();
+    expect(botonDialogo('Descartar mi borrador')).toBeTruthy();
+  });
+
+  it('cuando el envío automático manda el borrador, vuelve a cargar la planilla', async () => {
+    const { plataforma, servicio, elemento, esperar } = montarEditor({
+      plataforma: { borradores: [borradorLocal()] },
+    });
+    await esperar();
+    expect(elemento.textContent).toContain('Borrador local sin enviar');
+
+    await window.plataforma!.almacen!.borrarBorradorPlanilla('pl1');
+    await esperar();
+    await esperar();
+    expect(plataforma!.borradores.size).toBe(0);
+    expect(servicio.obtener).toHaveBeenCalledTimes(2);
+    expect(elemento.textContent).not.toContain('Borrador local sin enviar');
+  });
 });

@@ -36,8 +36,9 @@ src/
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/
       nueva/        planilla-nueva.component.ts (+ .html; esResidenteAsignado, que usa también el detalle)
-      editor/       planilla-editor.component.ts (+ .html, .scss), totales.ts (cálculo puro, solo ayuda visual)
+      editor/       planilla-editor.component.ts (+ .html, .scss), totales.ts (cálculo puro, solo ayuda visual), borrador-dialogo.component.ts (104: conflicto o planilla no editable)
       planillas.graphql.ts, planillas.service.ts
+      envio-borradores.service.ts    # 104: envía los borradores locales al volver la conexión y cada 60 s (se provee en las rutas)
       planillas.scss                 # estilos comunes de nueva y editor
     compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»), requiere-conexion.component.ts (104: ayuda «Requiere conexión» de los botones que escriben)
 federation.config.mjs                # expone las rutas (./Routes) para el shell

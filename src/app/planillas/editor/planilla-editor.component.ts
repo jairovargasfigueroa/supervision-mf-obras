@@ -30,7 +30,18 @@ import {
   formatearDiaHora,
 } from '../../nucleo/formato';
 import { esFalloDeConexion } from '../../nucleo/respaldo.service';
-import { SesionService, type BorradorPlanilla } from '../../nucleo/sesion.service';
+import {
+  EVENTO_BORRADORES,
+  SesionService,
+  type BorradorPlanilla,
+} from '../../nucleo/sesion.service';
+import { EnvioBorradoresService } from '../envio-borradores.service';
+import {
+  BorradorDialogoComponent,
+  type DatosBorradorDialogo,
+  type DecisionBorrador,
+} from './borrador-dialogo.component';
+import { MatDialog } from '@angular/material/dialog';
 import type { Foto } from '../../obras/obras.graphql';
 import { esResidenteAsignado } from '../nueva/planilla-nueva.component';
 import type { GuardarPlanillaEntrada, ObraDePlanilla, Planilla } from '../planillas.graphql';
@@ -84,6 +95,9 @@ export class PlanillaEditorComponent implements OnInit {
   protected readonly conexion = inject(ConexionService);
   protected readonly sesion = inject(SesionService);
   private readonly servicio = inject(PlanillasService);
+  private readonly envio = inject(EnvioBorradoresService, { optional: true });
+  private readonly dialogos = inject(MatDialog);
+  private dialogoAbierto = false;
   private readonly ruta = inject(ActivatedRoute);
   private readonly destruir = inject(DestroyRef);
 
@@ -230,6 +244,12 @@ export class PlanillaEditorComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // 104: el envío automático cambió o borró el borrador de esta planilla (enviado, conflicto, rechazado)
+    const alCambiarBorradores = () => void this.revisarBorrador();
+    window.addEventListener(EVENTO_BORRADORES, alCambiarBorradores);
+    this.destruir.onDestroy(() =>
+      window.removeEventListener(EVENTO_BORRADORES, alCambiarBorradores),
+    );
     this.ruta.paramMap.pipe(takeUntilDestroyed(this.destruir)).subscribe((parametros) => {
       this.id.set(parametros.get('id') ?? '');
       if (this.sesion.dentroDelErp()) this.cargar();
@@ -388,6 +408,9 @@ export class PlanillaEditorComponent implements OnInit {
       .catch(() => null);
     if (!borrador || this.planilla()?.id !== planilla.id) return;
     this.borrador.set(borrador);
+    if (borrador.estadoEnvio === 'CONFLICTO' || borrador.estadoEnvio === 'NO_EDITABLE') {
+      this.decidirBorrador(borrador, planilla);
+    }
     if (!this.editable()) return;
     const porPartida = new Map(
       borrador.lineas.map((linea) => [linea.partidaId, linea.cantidadPeriodo]),
@@ -428,6 +451,58 @@ export class PlanillaEditorComponent implements OnInit {
           this.ocupado.set(null);
         },
         error: (error: unknown) => this.fallo('presentarPlanilla', error),
+      });
+  }
+
+  /** Si el borrador de esta planilla cambió fuera del editor, vuelve a cargarla para mostrar su estado. */
+  private async revisarBorrador(): Promise<void> {
+    const planilla = this.planilla();
+    const almacen = window.plataforma?.almacen;
+    // Los cambios que hace el propio editor (guardar) no recargan
+    if (!planilla || !almacen || this.ocupado() !== null || this.dialogoAbierto) return;
+    const actual = await almacen.leerBorradorPlanilla(planilla.id).catch(() => null);
+    if ((actual?.estadoEnvio ?? null) !== (this.borrador()?.estadoEnvio ?? null)) {
+      this.cargar();
+    }
+  }
+
+  /**
+   * CONFLICTO: «Aplicar mi borrador sobre la última versión» o «Descartar mi borrador» (criterio 14); NO_EDITABLE:
+   * solo «Descartar mi borrador» (criterio 15). Luego vuelve a cargar la planilla.
+   */
+  private decidirBorrador(borrador: BorradorPlanilla, planilla: Planilla): void {
+    if (this.dialogoAbierto) return;
+    this.dialogoAbierto = true;
+    const datos: DatosBorradorDialogo =
+      borrador.estadoEnvio === 'CONFLICTO'
+        ? { tipo: 'CONFLICTO' }
+        : {
+            tipo: 'NO_EDITABLE',
+            mensaje: mensajeDeError(
+              {
+                codigo: 'PLANILLA_NO_EDITABLE',
+                estado: 409,
+                servicio: null,
+                errores: [],
+                red: false,
+              },
+              { estado: ETIQUETAS[planilla.estado] },
+            ),
+          };
+    this.dialogos
+      .open<BorradorDialogoComponent, DatosBorradorDialogo, DecisionBorrador>(
+        BorradorDialogoComponent,
+        { data: datos, disableClose: true },
+      )
+      .afterClosed()
+      .subscribe(async (decision) => {
+        if (decision === 'aplicar' && this.envio) {
+          await this.envio.aplicarSobreUltimaVersion(borrador.planillaId);
+        } else if (decision === 'descartar') {
+          await window.plataforma?.almacen?.borrarBorradorPlanilla(borrador.planillaId);
+        }
+        this.dialogoAbierto = false;
+        this.cargar();
       });
   }
 

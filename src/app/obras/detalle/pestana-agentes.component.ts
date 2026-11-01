@@ -62,7 +62,8 @@ export function agentesDeLaPestana(veCobros: boolean): Agente[] {
  * Pestaña «Agentes» del detalle (502, criterios 17, 19 y 20): hallazgos vigentes (los de la última ejecución
  * TERMINADA de cada agente) y sugerencias pendientes de la obra, con «Aprobar» y «Rechazar» (criterios 12 a 15). El
  * residente solo ve sus obras (el detalle no le abre otras) y nunca Control de cobros. Todo texto del agente se muestra
- * como texto (interpolación de Angular, sin innerHTML).
+ * como texto (interpolación de Angular, sin innerHTML). Si IA no responde, solo esta pestaña (o la sección cuyo campo
+ * llegó en null) muestra «No disponible por el momento» con «Reintentar» (criterio 21); el resto del detalle sigue.
  */
 @Component({
   selector: 'app-pestana-agentes',
@@ -96,11 +97,16 @@ export class PestanaAgentesComponent implements OnInit {
   protected readonly aviso = signal<string | null>(null);
 
   private readonly agentes = computed(() => agentesDeLaPestana(this.veCobros()));
-  protected readonly hallazgos = computed(() =>
-    (this.datos().hallazgos ?? []).filter((h) => this.agentes().includes(h.agente)),
+  /** null: IA no respondió (el campo llega en null con SERVICIO_NO_DISPONIBLE); la sección muestra su error. */
+  protected readonly hallazgos = computed(
+    () => this.datos().hallazgos?.filter((h) => this.agentes().includes(h.agente)) ?? null,
   );
-  protected readonly sugerencias = computed(() =>
-    (this.datos().sugerencias ?? []).filter((s) => this.agentes().includes(s.agente)),
+  protected readonly sugerencias = computed(
+    () => this.datos().sugerencias?.filter((s) => this.agentes().includes(s.agente)) ?? null,
+  );
+  /** IA no respondió ninguno de los dos: un solo «No disponible por el momento» para toda la pestaña (criterio 21). */
+  protected readonly iaNoDisponible = computed(
+    () => this.hallazgos() === null && this.sugerencias() === null,
   );
 
   protected readonly nombreAgente = NOMBRE_AGENTE;

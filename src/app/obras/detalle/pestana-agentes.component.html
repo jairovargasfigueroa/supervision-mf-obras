@@ -8,40 +8,46 @@
   <p class="cargando">Cargando agentes…</p>
 } @else if (estado() === 'sin-datos') {
   <app-aviso-sin-conexion />
-} @else if (estado() === 'error') {
+} @else if (estado() === 'error' || iaNoDisponible()) {
+  <!-- Criterio 21: el gateway no respondió o IA no respondió; solo esta pestaña -->
   <app-estado-error (reintentar)="cargar()" />
 } @else {
   <section class="seccion" aria-label="Hallazgos">
     <h3>Hallazgos</h3>
     <p class="ayuda">Los de la última ejecución de cada agente.</p>
-    @if (hallazgos().length === 0) {
-      <app-estado-vacio texto="No hay hallazgos vigentes en esta obra." icono="fact_check" />
+    @if (hallazgos(); as hallazgos) {
+      @if (hallazgos.length === 0) {
+        <app-estado-vacio texto="No hay hallazgos vigentes en esta obra." icono="fact_check" />
+      } @else {
+        <ul class="lista">
+          @for (hallazgo of hallazgos; track $index) {
+            <li class="tarjeta hallazgo">
+              <div class="cabecera">
+                <strong>{{ tipo(hallazgo.tipo) }}</strong>
+                <app-estado-chip [estado]="chip(hallazgo)" />
+                <span class="secundario">
+                  {{ nombreAgente[hallazgo.agente] }} · {{ fechaHora(hallazgo.detectadoEn) }}
+                </span>
+              </div>
+              <p class="situacion">{{ hallazgo.situacion }}</p>
+              <p class="causa">
+                <span class="etiqueta">Causa probable:</span> {{ hallazgo.causaProbable }}
+              </p>
+              <ul class="evidencia" aria-label="Evidencia">
+                @for (evidencia of hallazgo.evidencia; track $index) {
+                  <li>
+                    <span class="herramienta">{{ evidencia.herramienta }}</span
+                    >: {{ evidencia.dato }}
+                  </li>
+                }
+              </ul>
+            </li>
+          }
+        </ul>
+      }
     } @else {
-      <ul class="lista">
-        @for (hallazgo of hallazgos(); track $index) {
-          <li class="tarjeta hallazgo">
-            <div class="cabecera">
-              <strong>{{ tipo(hallazgo.tipo) }}</strong>
-              <app-estado-chip [estado]="chip(hallazgo)" />
-              <span class="secundario">
-                {{ nombreAgente[hallazgo.agente] }} · {{ fechaHora(hallazgo.detectadoEn) }}
-              </span>
-            </div>
-            <p class="situacion">{{ hallazgo.situacion }}</p>
-            <p class="causa">
-              <span class="etiqueta">Causa probable:</span> {{ hallazgo.causaProbable }}
-            </p>
-            <ul class="evidencia" aria-label="Evidencia">
-              @for (evidencia of hallazgo.evidencia; track $index) {
-                <li>
-                  <span class="herramienta">{{ evidencia.herramienta }}</span
-                  >: {{ evidencia.dato }}
-                </li>
-              }
-            </ul>
-          </li>
-        }
-      </ul>
+      <!-- Criterio 21: solo este campo llegó en null (IA no respondió) -->
+      <app-estado-error (reintentar)="cargar()" />
     }
   </section>
 
@@ -50,44 +56,49 @@
     <p class="ayuda">
       Aprobar solo registra tu decisión: no se crea ni se envía nada en otra área.
     </p>
-    @if (sugerencias().length === 0) {
-      <app-estado-vacio texto="No hay sugerencias pendientes en esta obra." icono="task_alt" />
-    } @else {
-      <ul class="lista">
-        @for (sugerencia of sugerencias(); track sugerencia.id) {
-          <li class="tarjeta sugerencia">
-            <div class="cabecera">
-              <strong>{{ sugerencia.accionTexto }}</strong>
-              <span class="secundario">
-                {{ nombreAgente[sugerencia.agente] }} · {{ fechaHora(sugerencia.creadaEn) }}
+    @if (sugerencias(); as sugerencias) {
+      @if (sugerencias.length === 0) {
+        <app-estado-vacio texto="No hay sugerencias pendientes en esta obra." icono="task_alt" />
+      } @else {
+        <ul class="lista">
+          @for (sugerencia of sugerencias; track sugerencia.id) {
+            <li class="tarjeta sugerencia">
+              <div class="cabecera">
+                <strong>{{ sugerencia.accionTexto }}</strong>
+                <span class="secundario">
+                  {{ nombreAgente[sugerencia.agente] }} · {{ fechaHora(sugerencia.creadaEn) }}
+                </span>
+              </div>
+              <p class="descripcion">{{ sugerencia.descripcion }}</p>
+              <span class="acciones">
+                <app-requiere-conexion>
+                  <button
+                    mat-flat-button
+                    type="button"
+                    [disabled]="!conexion.enLinea()"
+                    (click)="decidir(sugerencia, 'aprobar')"
+                  >
+                    Aprobar
+                  </button>
+                </app-requiere-conexion>
+                <app-requiere-conexion>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="!conexion.enLinea()"
+                    (click)="decidir(sugerencia, 'rechazar')"
+                  >
+                    Rechazar
+                  </button>
+                </app-requiere-conexion>
               </span>
-            </div>
-            <p class="descripcion">{{ sugerencia.descripcion }}</p>
-            <span class="acciones">
-              <app-requiere-conexion>
-                <button
-                  mat-flat-button
-                  type="button"
-                  [disabled]="!conexion.enLinea()"
-                  (click)="decidir(sugerencia, 'aprobar')"
-                >
-                  Aprobar
-                </button>
-              </app-requiere-conexion>
-              <app-requiere-conexion>
-                <button
-                  mat-stroked-button
-                  type="button"
-                  [disabled]="!conexion.enLinea()"
-                  (click)="decidir(sugerencia, 'rechazar')"
-                >
-                  Rechazar
-                </button>
-              </app-requiere-conexion>
-            </span>
-          </li>
-        }
-      </ul>
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      <!-- Criterio 21: solo este campo llegó en null (IA no respondió) -->
+      <app-estado-error (reintentar)="cargar()" />
     }
   </section>
 }

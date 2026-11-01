@@ -31,7 +31,7 @@ src/
     obras/
       lista/        obras-lista.component.ts (+ .html, .scss)
       nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro)
-      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado), consumos-atipicos.component.ts (+ .html, .scss; 403: sección de la pestaña Material), revision-dialogo.component.ts (403: «Es normal» y «Confirmar problema»)
+      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado), consumos-atipicos.component.ts (+ .html, .scss; 403: sección de la pestaña Material), revision-dialogo.component.ts (403: «Es normal» y «Confirmar problema»), pestana-agentes.component.ts (+ .html, .scss; 502: hallazgos y sugerencias pendientes de los agentes)
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/
@@ -41,6 +41,7 @@ src/
       envio-borradores.service.ts    # 104: envía los borradores locales al volver la conexión y cada 60 s (se provee en las rutas)
       planillas.scss                 # estilos comunes de nueva y editor
     compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»), requiere-conexion.component.ts (104: ayuda «Requiere conexión» de los botones que escriben)
+      sugerencia-decision/   # 502: diálogo de aprobar (comentario opcional) y rechazar (motivo obligatorio con contador) una sugerencia de un agente: .component.ts, .graphql.ts (tipo Sugerencia y mutaciones), .service.ts (abre el diálogo y envía la mutación; se provee en las rutas)
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```
 

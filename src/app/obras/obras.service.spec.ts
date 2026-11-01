@@ -4,6 +4,7 @@ import { ApolloTestingController, ApolloTestingModule } from 'apollo-angular/tes
 import { print } from 'graphql';
 import { firstValueFrom } from 'rxjs';
 import {
+  CONSULTA_AGENTES_OBRA,
   CONSULTA_CONSUMOS_ATIPICOS,
   CONSULTA_MATERIAL_COMPARADO,
   CONSULTA_OBRA,
@@ -182,6 +183,49 @@ describe('ObrasService', () => {
         estado: 'CONFIRMADO',
         comentario: 'Se usó en otra obra',
       });
+    });
+  });
+
+  describe('agentes (502)', () => {
+    const HALLAZGO = {
+      __typename: 'Hallazgo',
+      ejecucionId: 'e1',
+      agente: 'SEGUIMIENTO_OBRAS',
+      obraId: 'b1',
+      obraNombre: 'Edificio Las Palmas',
+      tipo: 'ATRASO',
+      severidad: 'ALTA',
+      situacion: 'Avance 20 % con plazo 32 %',
+      causaProbable: 'Lluvias',
+      evidencia: [{ __typename: 'Evidencia', herramienta: 'avance_obra', dato: 'avance 20' }],
+      detectadoEn: '2026-11-01T10:01:12Z',
+    };
+
+    it('pide los hallazgos y las sugerencias pendientes de la obra', async () => {
+      const respuesta = firstValueFrom(servicio.agentes('b1'));
+      const operacion = gateway.expectOne(CONSULTA_AGENTES_OBRA);
+      expect(operacion.operation.variables).toEqual({ id: 'b1' });
+      expect(print(operacion.operation.query)).toContain('sugerencias(estado: PENDIENTE)');
+      operacion.flushData({
+        obra: { __typename: 'Obra', id: 'b1', hallazgos: [HALLAZGO], sugerencias: [] },
+      });
+      const datos = (await respuesta)?.datos;
+      expect(datos?.hallazgos?.[0].situacion).toBe('Avance 20 % con plazo 32 %');
+      expect(datos?.sugerencias).toEqual([]);
+    });
+
+    it('si IA no responde entrega los campos en null sin error (criterio 21)', async () => {
+      const respuesta = firstValueFrom(servicio.agentes('b1'));
+      const caido = (campo: string) => ({
+        message: 'IA no responde',
+        path: ['obra', campo],
+        extensions: { codigo: 'SERVICIO_NO_DISPONIBLE', servicio: 'ia', estado: 503 },
+      });
+      gateway.expectOne(CONSULTA_AGENTES_OBRA).flush({
+        data: { obra: { __typename: 'Obra', id: 'b1', hallazgos: null, sugerencias: null } },
+        errors: [caido('hallazgos'), caido('sugerencias')],
+      });
+      expect((await respuesta)?.datos).toEqual({ hallazgos: null, sugerencias: null });
     });
   });
 

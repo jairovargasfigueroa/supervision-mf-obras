@@ -5,6 +5,7 @@ import type {
   EstadoObra,
   EstadoPlanilla,
   EstadoRevision,
+  Severidad,
 } from '../obras/obras.graphql';
 
 /** Etiqueta de cada estado de obra. SIN_CONTRATO se muestra «Registrando contrato» (002, criterio 7). */
@@ -17,7 +18,8 @@ export const ETIQUETA_ESTADO_OBRA: Record<EstadoObra, string> = {
 /**
  * Estados que se muestran como chip: de obra, de planilla y de cobro. EN_RIESGO es la etiqueta «En riesgo» de la
  * obra (006, 009) y EXCEDIDO la del consumo excedido (006, pestaña «Material»). ATIPICO_* son las revisiones de un
- * consumo atípico (403).
+ * consumo atípico (403). SEVERIDAD_* es la
+ * severidad de un hallazgo de un agente (502).
  */
 export type EstadoMostrable =
   | EstadoObra
@@ -25,7 +27,8 @@ export type EstadoMostrable =
   | EstadoCobro
   | 'EN_RIESGO'
   | 'EXCEDIDO'
-  | `ATIPICO_${EstadoRevision}`;
+  | `ATIPICO_${EstadoRevision}`
+  | `SEVERIDAD_${Severidad}`;
 
 export const ETIQUETAS: Record<EstadoMostrable, string> = {
   ...ETIQUETA_ESTADO_OBRA,
@@ -41,6 +44,9 @@ export const ETIQUETAS: Record<EstadoMostrable, string> = {
   ATIPICO_PENDIENTE: 'Pendiente',
   ATIPICO_NORMAL: 'Normal',
   ATIPICO_CONFIRMADO: 'Problema confirmado',
+  SEVERIDAD_ALTA: 'Alta',
+  SEVERIDAD_MEDIA: 'Media',
+  SEVERIDAD_BAJA: 'Baja',
 };
 
 /** Color de cada estado (docs/diseno-visual.md, «Estados del dominio → color»). */
@@ -60,6 +66,10 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
   ATIPICO_PENDIENTE: 'atencion',
   ATIPICO_NORMAL: 'exito',
   ATIPICO_CONFIRMADO: 'error',
+  // 502: como en mf-supervision (decisión del equipo; docs/diseno-visual.md no define la severidad)
+  SEVERIDAD_ALTA: 'error',
+  SEVERIDAD_MEDIA: 'atencion',
+  SEVERIDAD_BAJA: 'neutro',
 };
 
 /**

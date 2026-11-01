@@ -31,7 +31,7 @@ describe('estados vacío y error', () => {
     fixture.detectChanges();
 
     const elemento = fixture.nativeElement as HTMLElement;
-    expect(elemento.textContent).toContain('No disponible por el momento.');
+    expect(elemento.querySelector('p')?.textContent?.trim()).toBe('No disponible por el momento');
     elemento.querySelector('button')!.click();
     expect(reintentos).toBe(1);
   });

@@ -56,7 +56,7 @@ describe('ObrasListaComponent', () => {
     it('muestra el estado de error si la consulta falla', () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const { elemento } = montar(() => throwError(() => new Error('sin conexión')));
-      expect(elemento.textContent).toContain('No disponible por el momento.');
+      expect(elemento.textContent).toContain('No disponible por el momento');
     });
 
     it('lista las obras con ubicación, estado, avance y plazo transcurrido (criterio 1)', () => {

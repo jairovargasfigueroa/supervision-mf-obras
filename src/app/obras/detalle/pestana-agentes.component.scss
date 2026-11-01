@@ -1,0 +1,71 @@
+// Pestaña «Agentes» del detalle (502); lo común está en pestana.scss.
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.lista {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--sv-superficie);
+  border: 1px solid var(--sv-borde);
+  border-radius: var(--sv-radio-tarjeta);
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+
+.cabecera .secundario {
+  font-size: 13px;
+}
+
+p {
+  margin: 0;
+}
+
+.descripcion,
+.causa {
+  color: var(--sv-texto-secundario);
+}
+
+.etiqueta {
+  font-weight: 600;
+}
+
+.evidencia {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 13px;
+}
+
+.herramienta {
+  font-family: var(--sv-fuente-numeros);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}

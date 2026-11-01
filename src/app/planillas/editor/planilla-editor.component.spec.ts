@@ -309,7 +309,7 @@ describe('PlanillaEditorComponent (fotos, guardar y presentar)', () => {
   it('si la galería no responde, solo esa sección muestra «No disponible por el momento»', () => {
     const { elemento } = montarEditor({ fotos: () => throwError(() => new Error('caído')) });
     expect(elemento.querySelector('app-estado-error')?.textContent).toContain(
-      'No disponible por el momento.',
+      'No disponible por el momento',
     );
     expect(elemento.querySelectorAll('input[type="number"]').length).toBe(2);
   });

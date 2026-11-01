@@ -212,7 +212,7 @@ describe('PestanaAgentesComponent (502)', () => {
       );
       await esperar();
       expect(texto(elemento.querySelector('app-estado-error'))).toContain(
-        'No disponible por el momento.',
+        'No disponible por el momento',
       );
       expect(seccion(elemento, 'Hallazgos')).toBeNull();
 
@@ -229,7 +229,7 @@ describe('PestanaAgentesComponent (502)', () => {
       expect(seccion(elemento, 'Hallazgos')!.querySelector('app-estado-error')).toBeNull();
       expect(texto(seccion(elemento, 'Hallazgos'))).toContain('Atraso');
       expect(texto(seccion(elemento, 'Sugerencias pendientes'))).toContain(
-        'No disponible por el momento.',
+        'No disponible por el momento',
       );
     });
 
@@ -240,7 +240,7 @@ describe('PestanaAgentesComponent (502)', () => {
       );
       await esperar();
       expect(texto(elemento.querySelector('app-estado-error'))).toContain(
-        'No disponible por el momento.',
+        'No disponible por el momento',
       );
     });
   });

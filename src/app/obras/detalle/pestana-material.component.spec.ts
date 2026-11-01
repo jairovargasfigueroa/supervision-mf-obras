@@ -176,7 +176,7 @@ describe('PestanaMaterialComponent', () => {
       of({ periodo: '2026-10', hayPlanilla: true, filas: FILAS }),
     ];
     const { fixture, elemento } = montar(() => respuestas.shift()!);
-    expect(elemento.textContent).toContain('No disponible por el momento.');
+    expect(elemento.textContent).toContain('No disponible por el momento');
     elemento.querySelector('app-estado-error button')!.dispatchEvent(new Event('click'));
     fixture.detectChanges();
     expect(elemento.textContent).toContain('Cemento IP-30');

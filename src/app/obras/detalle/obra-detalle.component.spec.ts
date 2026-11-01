@@ -326,7 +326,7 @@ describe('ObraDetalleComponent', () => {
         pestanas: { materialComparado: caido, cobros: caido },
       });
       expect(elemento.querySelector('mat-tab-body app-estado-error')?.textContent).toContain(
-        'No disponible por el momento.',
+        'No disponible por el momento',
       );
       expect(texto(elemento)).toContain('Avance de la obra 20 %');
       expect(texto(elemento)).toContain('Saldo disponible Bs 300.000,00');

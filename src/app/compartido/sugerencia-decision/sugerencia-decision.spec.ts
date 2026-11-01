@@ -3,7 +3,12 @@ import { FormControl } from '@angular/forms';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { Apollo } from 'apollo-angular';
 import { firstValueFrom, of, throwError } from 'rxjs';
-import { validarTextoDecision, type ResultadoDecision } from './sugerencia-decision.component';
+import {
+  MENSAJE_COMENTARIO,
+  MENSAJE_MOTIVO,
+  validarTextoDecision,
+  type ResultadoDecision,
+} from './sugerencia-decision.component';
 import type { Sugerencia } from './sugerencia-decision.graphql';
 import { SugerenciaDecisionService } from './sugerencia-decision.service';
 
@@ -67,6 +72,8 @@ describe('sugerencia-decision (502)', () => {
     expect(control(' 123456789 ', 'rechazar').errors).toEqual({ largo: true });
     expect(control('1234567890', 'rechazar').errors).toBeNull();
     expect(control('a'.repeat(501), 'rechazar').errors).toEqual({ largo: true });
+    expect(MENSAJE_COMENTARIO).toBe('El comentario puede tener hasta 300 caracteres.');
+    expect(MENSAJE_MOTIVO).toBe('El motivo debe tener entre 10 y 500 caracteres.');
   });
 
   it('aprobar sin comentario manda solo el id y avisa que solo registra la decisión (criterio 12)', async () => {
@@ -79,6 +86,7 @@ describe('sugerencia-decision (502)', () => {
     expect(texto(dialogo())).toContain('Programar una visita de supervisión a la obra');
     expect(texto(dialogo())).toContain('Aprobar solo registra tu decisión');
     expect(texto(dialogo())).toContain('0 / 300');
+    expect(texto(dialogo()!.querySelector('mat-label'))).toBe('Comentario (opcional)');
     boton('Aprobar').click();
     expect(await cierre).toEqual({ tipo: 'decidida' });
     expect(apollo.mutate.mock.calls[0][0]).toMatchObject({ variables: { id: 's1' } });
@@ -108,7 +116,9 @@ describe('sugerencia-decision (502)', () => {
     boton('Rechazar').click();
     await esperar();
     expect(apollo.mutate).not.toHaveBeenCalled();
-    expect(texto(dialogo()!.querySelector('mat-error'))).toBe('Obligatorio');
+    expect(texto(dialogo()!.querySelector('mat-error'))).toBe(
+      'El motivo debe tener entre 10 y 500 caracteres.',
+    );
 
     escribir('corto');
     await esperar();
@@ -116,7 +126,7 @@ describe('sugerencia-decision (502)', () => {
     await esperar();
     expect(apollo.mutate).not.toHaveBeenCalled();
     expect(texto(dialogo()!.querySelector('mat-error'))).toBe(
-      'Debe tener entre 10 y 500 caracteres',
+      'El motivo debe tener entre 10 y 500 caracteres.',
     );
 
     escribir('Ya se visitó la obra ayer');

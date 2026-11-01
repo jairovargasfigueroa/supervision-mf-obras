@@ -103,7 +103,7 @@ describe('PestanaPlanillasComponent', () => {
     });
     const respuestas: Observable<PlanillaResumen[]>[] = [throwError(() => error), of([])];
     const { fixture, elemento } = montar(() => respuestas.shift()!);
-    expect(elemento.textContent).toContain('No disponible por el momento.');
+    expect(elemento.textContent).toContain('No disponible por el momento');
     reintentar(elemento);
     fixture.detectChanges();
     expect(elemento.textContent).toContain('Aún no hay planillas.');
@@ -159,7 +159,7 @@ describe('PestanaCobrosComponent', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const respuestas: Observable<Cobro[] | null>[] = [throwError(() => new Error('caído')), of([])];
     const { fixture, elemento } = montar(() => respuestas.shift()!);
-    expect(elemento.textContent).toContain('No disponible por el momento.');
+    expect(elemento.textContent).toContain('No disponible por el momento');
     reintentar(elemento);
     fixture.detectChanges();
     expect(elemento.textContent).toContain('Aún no hay cobros.');

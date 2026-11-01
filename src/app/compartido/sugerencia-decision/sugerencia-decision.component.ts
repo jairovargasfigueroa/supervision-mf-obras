@@ -19,6 +19,10 @@ export const COMENTARIO_MAXIMO = 300;
 export const MOTIVO_MINIMO = 10;
 export const MOTIVO_MAXIMO = 500;
 
+/** Reglas locales de la decisión (docs/mensajes.md: `MOTIVO_INVALIDO` y la del comentario). */
+export const MENSAJE_MOTIVO = `El motivo debe tener entre ${MOTIVO_MINIMO} y ${MOTIVO_MAXIMO} caracteres.`;
+export const MENSAJE_COMENTARIO = `El comentario puede tener hasta ${COMENTARIO_MAXIMO} caracteres.`;
+
 export type ModoDecision = 'aprobar' | 'rechazar';
 
 export interface DatosDecision {
@@ -123,7 +127,7 @@ export class SugerenciaDecisionComponent {
   protected readonly rechazo = this.datos.modo === 'rechazar';
   protected readonly titulo = this.rechazo ? 'Rechazar sugerencia' : 'Aprobar sugerencia';
   protected readonly boton = this.rechazo ? 'Rechazar' : 'Aprobar';
-  protected readonly etiqueta = this.rechazo ? 'Motivo' : 'Comentario';
+  protected readonly etiqueta = this.rechazo ? 'Motivo' : 'Comentario (opcional)';
   protected readonly maximo = this.rechazo ? MOTIVO_MAXIMO : COMENTARIO_MAXIMO;
   protected readonly ayudaCampo = this.rechazo
     ? `Obligatorio, de ${MOTIVO_MINIMO} a ${MOTIVO_MAXIMO} caracteres`
@@ -147,10 +151,7 @@ export class SugerenciaDecisionComponent {
   protected mensajeCampo(): string {
     const errores = this.texto.errors ?? {};
     if (errores['servidor']) return this.reglaServidor() ?? '';
-    if (errores['required']) return 'Obligatorio';
-    return this.rechazo
-      ? `Debe tener entre ${MOTIVO_MINIMO} y ${MOTIVO_MAXIMO} caracteres`
-      : `Debe tener hasta ${COMENTARIO_MAXIMO} caracteres`;
+    return this.rechazo ? MENSAJE_MOTIVO : MENSAJE_COMENTARIO;
   }
 
   enviar(): void {

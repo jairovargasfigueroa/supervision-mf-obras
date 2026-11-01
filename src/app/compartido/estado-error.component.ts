@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
-/** Estado de error de docs/diseno-visual.md: «No disponible por el momento. Reintentar». */
+/** Estado de error de docs/diseno-visual.md: «No disponible por el momento» y «Reintentar». */
 @Component({
   selector: 'app-estado-error',
   imports: [MatButtonModule, MatIconModule],
@@ -33,6 +33,6 @@ import { MatIconModule } from '@angular/material/icon';
   `,
 })
 export class EstadoErrorComponent {
-  readonly texto = input('No disponible por el momento.');
+  readonly texto = input('No disponible por el momento');
   readonly reintentar = output<void>();
 }

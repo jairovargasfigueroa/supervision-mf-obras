@@ -41,6 +41,7 @@ src/
       envio-borradores.service.ts    # 104: envía los borradores locales al volver la conexión y cada 60 s (se provee en las rutas)
       planillas.scss                 # estilos comunes de nueva y editor
     compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»), requiere-conexion.component.ts (104: ayuda «Requiere conexión» de los botones que escriben)
+      sugerencia-decision/   # 502: diálogo de aprobar (comentario opcional) y rechazar (motivo obligatorio con contador) una sugerencia de un agente: .component.ts, .graphql.ts (tipo Sugerencia y mutaciones), .service.ts (abre el diálogo y envía la mutación; se provee en las rutas)
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```
 

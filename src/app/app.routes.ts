@@ -4,6 +4,7 @@ import {
 } from '@angular/material/form-field';
 import { inject, provideEnvironmentInitializer } from '@angular/core';
 import { Routes } from '@angular/router';
+import { SugerenciaDecisionService } from './compartido/sugerencia-decision/sugerencia-decision.service';
 import { provideGraphql } from './nucleo/graphql.config';
 import { ObraDetalleComponent } from './obras/detalle/obra-detalle.component';
 import { ObrasListaComponent } from './obras/lista/obras-lista.component';
@@ -23,6 +24,8 @@ export const routes: Routes = [
       provideGraphql(),
       ObrasService,
       PlanillasService,
+      // 502: diálogos de aprobar y rechazar una sugerencia de un agente
+      SugerenciaDecisionService,
       // 104: envía los borradores de planilla guardados en el equipo al volver la conexión
       EnvioBorradoresService,
       provideEnvironmentInitializer(() => inject(EnvioBorradoresService).iniciar()),

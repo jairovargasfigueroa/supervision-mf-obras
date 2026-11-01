@@ -44,6 +44,10 @@ const MENSAJES: Record<string, string> = {
   CONSUMO_ATIPICO_NO_ENCONTRADO: 'No encontramos ese consumo atípico.',
   REVISION_YA_REGISTRADA: 'Este consumo ya fue revisado',
   COMENTARIO_INVALIDO: 'Revisa el comentario.',
+  // Agentes (502)
+  SUGERENCIA_NO_ENCONTRADA: 'No encontramos esa sugerencia o no tienes acceso a ella.',
+  SUGERENCIA_YA_DECIDIDA: 'Esta sugerencia ya fue aprobada o rechazada. Recarga la lista.',
+  MOTIVO_INVALIDO: 'El motivo debe tener entre 10 y 500 caracteres.',
 };
 
 /** «—» con este aviso cuando el servicio de IA no responde (402 y 403, criterio 12). */

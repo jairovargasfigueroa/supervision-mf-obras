@@ -7,4 +7,4 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 - [x] Componente compartido `compartido/sugerencia-decision` (diálogos de aprobar y rechazar y sus mutaciones; en este repo la carpeta común es `compartido/`)
 - [x] Pestaña «Agentes» en `/obras/:id`: hallazgos (Seguimiento y, para `admin` y `gerente`, Cobros) y sugerencias pendientes de la obra
 - [x] Error propio de la pestaña cuando IA no responde
-- [ ] Pruebas (Vitest)
+- [x] Pruebas (Vitest)

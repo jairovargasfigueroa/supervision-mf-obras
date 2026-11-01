@@ -1,4 +1,9 @@
 import { gql } from 'apollo-angular';
+import {
+  CAMPOS_SUGERENCIA,
+  type Agente,
+  type Sugerencia,
+} from '../compartido/sugerencia-decision/sugerencia-decision.graphql';
 
 // Documentos GraphQL del área de obras (docs/contratos.md): obras, obra (y las secciones del detalle), usuarios y
 // registrarObra.
@@ -388,6 +393,59 @@ export const MUTACION_REVISAR_CONSUMO_ATIPICO = gql<
   mutation RevisarConsumoAtipico($id: ID!, $estado: EstadoRevision!, $comentario: String) {
     revisarConsumoAtipico(id: $id, estado: $estado, comentario: $comentario) {
       ${CAMPOS_CONSUMO_ATIPICO}
+    }
+  }
+`;
+
+/** 502: severidad de un hallazgo de un agente. */
+export type Severidad = 'ALTA' | 'MEDIA' | 'BAJA';
+
+/** 502: un hallazgo vigente de un agente (de su última ejecución TERMINADA). */
+export interface Hallazgo {
+  ejecucionId: string;
+  agente: Agente;
+  obraId: string;
+  obraNombre: string;
+  tipo: string;
+  severidad: Severidad;
+  situacion: string;
+  causaProbable: string;
+  evidencia: { herramienta: string; dato: string }[];
+  detectadoEn: string;
+}
+
+/** 502: lo que muestra la pestaña «Agentes»; cada campo llega en null si IA no responde (SERVICIO_NO_DISPONIBLE). */
+export interface AgentesObra {
+  hallazgos: Hallazgo[] | null;
+  sugerencias: Sugerencia[] | null;
+}
+
+/**
+ * 502: hallazgos vigentes y sugerencias pendientes de la obra, de todos los agentes que el usuario ve (al residente,
+ * IA no le devuelve Control de cobros); la pestaña se queda con los suyos.
+ */
+export const CONSULTA_AGENTES_OBRA = gql<
+  { obra: ({ id: string } & AgentesObra) | null },
+  { id: string }
+>`
+  query AgentesObra($id: ID!) {
+    obra(id: $id) {
+      id
+      hallazgos {
+        ejecucionId
+        agente
+        obraId
+        obraNombre
+        tipo
+        severidad
+        situacion
+        causaProbable
+        evidencia { herramienta dato }
+        detectadoEn
+      }
+      sugerencias(estado: PENDIENTE) {
+        ${CAMPOS_SUGERENCIA}
+      }
     }
   }
 `;

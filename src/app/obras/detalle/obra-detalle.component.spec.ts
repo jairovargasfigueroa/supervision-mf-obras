@@ -249,14 +249,14 @@ describe('ObraDetalleComponent', () => {
       fixture.detectChanges();
     }
 
-    it.each([['admin'], ['gerente']])('%s ve Material, Fotos, Planillas y Cobros', async (rol) => {
+    it.each([['admin'], ['gerente']])('%s ve Material, Fotos, Planillas, Cobros y Agentes', async (rol) => {
       const { elemento } = await abrir(EN_EJECUCION, { roles: [rol] });
-      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas', 'Cobros']);
+      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas', 'Cobros', 'Agentes']);
     });
 
-    it('residente no ve la pestaña Cobros', async () => {
+    it('residente no ve la pestaña Cobros y sí la de Agentes', async () => {
       const { elemento } = await abrir(EN_EJECUCION, { roles: ['residente'] });
-      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas']);
+      expect(pestanas(elemento)).toEqual(['Material', 'Fotos', 'Planillas', 'Agentes']);
     });
 
     it('cada pestaña pide sus datos al abrirse', async () => {

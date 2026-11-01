@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Apollo } from 'apollo-angular';
 import { map, type Observable } from 'rxjs';
 import {
+  CONSULTA_AGENTES_OBRA,
   CONSULTA_COBROS,
   CONSULTA_CONSUMOS_ATIPICOS,
   CONSULTA_FINANZAS_OBRA,
@@ -13,6 +14,7 @@ import {
   CONSULTA_USUARIOS,
   MUTACION_REGISTRAR_OBRA,
   MUTACION_REVISAR_CONSUMO_ATIPICO,
+  type AgentesObra,
   type Cobro,
   type ComparacionMaterial,
   type ConsumoAtipico,
@@ -200,6 +202,36 @@ export class ObrasService {
         variables: comentario ? { id, estado, comentario } : { id, estado },
       })
       .pipe(map((resultado) => resultado.data!.revisarConsumoAtipico));
+  }
+
+  /**
+   * Hallazgos vigentes y sugerencias pendientes de los agentes en la obra (502). Admite respuesta parcial
+   * (errorPolicy «all»): si IA no responde, el campo llega en null y el resto se muestra; esa respuesta no se guarda
+   * (104). Solo es error si no llega la obra.
+   */
+  agentes(id: string): Observable<ConRespaldo<AgentesObra> | null> {
+    return this.respaldo.consultaConRespaldo(claveConsulta(CONSULTA_AGENTES_OBRA, { id }), () =>
+      this.apollo
+        .query({
+          query: CONSULTA_AGENTES_OBRA,
+          variables: { id },
+          fetchPolicy: 'network-only',
+          errorPolicy: 'all',
+        })
+        .pipe(
+          map((resultado) => {
+            const obra = resultado.data?.obra;
+            if (!obra) {
+              if (resultado.error) throw resultado.error;
+              return { datos: { hallazgos: [], sugerencias: [] }, completa: true };
+            }
+            return {
+              datos: { hallazgos: obra.hallazgos ?? null, sugerencias: obra.sugerencias ?? null },
+              completa: !resultado.error,
+            };
+          }),
+        ),
+    );
   }
 
   registrar(entrada: RegistrarObraEntrada): Observable<{ id: string; estado: EstadoObra }> {

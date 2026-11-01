@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
+import { MatTooltip } from '@angular/material/tooltip';
+import { By } from '@angular/platform-browser';
 import { desdeLaRed } from '../../nucleo/plataforma-falsa';
 import { of, throwError, type Observable } from 'rxjs';
-import type { Foto, FotosPagina } from '../obras.graphql';
+import type { DeteccionEpp, Foto, FotosPagina } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
-import { PestanaFotosComponent, agruparFotos } from './pestana-fotos.component';
+import { PestanaFotosComponent, agruparFotos, etiquetaEpp } from './pestana-fotos.component';
 
 const PARTIDAS = [
   { id: 'p1', codigo: 'P-01', nombre: 'Excavación' },
@@ -21,6 +23,7 @@ const foto = (
   registradoPor: autor ? { id: 'u-' + autor, nombre: autor } : null,
   registradoEn,
   urlDescarga: `https://s3.example/${id}.jpg`,
+  deteccion: null,
 });
 
 const FOTOS = [
@@ -106,6 +109,60 @@ describe('PestanaFotosComponent', () => {
     expect(fotos).toHaveBeenLastCalledWith('b1', 2);
     expect(elemento.querySelectorAll('img')).toHaveLength(3);
     expect(boton()).toBeUndefined();
+  });
+
+  describe('etiqueta de EPP (301, criterio 12)', () => {
+    const deteccion = (sinCasco: number, sinChaleco: number): DeteccionEpp => ({
+      personas: 4,
+      sinCasco,
+      sinChaleco,
+      versionModelo: 'epp-1.0.0',
+    });
+
+    it('etiquetaEpp: con alertas, sin alertas y sin análisis', () => {
+      expect(etiquetaEpp(deteccion(1, 2))).toEqual({
+        texto: '1 sin casco · 2 sin chaleco',
+        alerta: true,
+        ayuda: 'Detectado en el celular con el modelo epp-1.0.0',
+      });
+      expect(etiquetaEpp(deteccion(0, 3))?.texto).toBe('0 sin casco · 3 sin chaleco');
+      expect(etiquetaEpp(deteccion(2, 0))).toMatchObject({
+        texto: '2 sin casco · 0 sin chaleco',
+        alerta: true,
+      });
+      expect(etiquetaEpp(deteccion(0, 0))).toEqual({
+        texto: 'Sin alertas de EPP',
+        alerta: false,
+        ayuda: 'Detectado en el celular con el modelo epp-1.0.0',
+      });
+      expect(etiquetaEpp({ ...deteccion(0, 0), personas: 0 })?.texto).toBe('Sin alertas de EPP');
+      expect(etiquetaEpp(null)).toBeNull();
+    });
+
+    it('cada miniatura analizada lleva su etiqueta y la no analizada ninguna', () => {
+      const fotos = [
+        { ...foto('f1', 'p1', '2026-11-15T14:00:00Z'), deteccion: deteccion(1, 2) },
+        { ...foto('f2', 'p1', '2026-11-14T14:00:00Z'), deteccion: deteccion(0, 0) },
+        foto('f3', 'p1', '2026-11-13T14:00:00Z'),
+      ];
+      const { fixture, elemento } = montar(() => of(pagina(fotos)));
+
+      const figuras = [...elemento.querySelectorAll('figure')];
+      const etiquetas = figuras.map((figura) => figura.querySelector('.etiqueta-epp'));
+      expect(etiquetas[0]?.textContent?.trim()).toBe('1 sin casco · 2 sin chaleco');
+      expect(etiquetas[0]?.classList.contains('alerta')).toBe(true);
+      expect(etiquetas[1]?.textContent?.trim()).toBe('Sin alertas de EPP');
+      expect(etiquetas[1]?.classList.contains('alerta')).toBe(false);
+      expect(etiquetas[2]).toBeNull();
+
+      const ayudas = fixture.debugElement
+        .queryAll(By.directive(MatTooltip))
+        .map((nodo) => nodo.injector.get(MatTooltip).message);
+      expect(ayudas).toEqual([
+        'Detectado en el celular con el modelo epp-1.0.0',
+        'Detectado en el celular con el modelo epp-1.0.0',
+      ]);
+    });
   });
 
   it('si no responde muestra «No disponible por el momento» y reintenta (criterio 4)', () => {

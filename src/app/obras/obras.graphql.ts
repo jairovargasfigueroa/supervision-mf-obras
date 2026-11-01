@@ -129,6 +129,15 @@ export interface ComparacionMaterial {
   filas: FilaComparacion[];
 }
 
+/** 301: detección de casco y chaleco hecha en el celular al tomar la foto. */
+export interface DeteccionEpp {
+  personas: number;
+  sinCasco: number;
+  sinChaleco: number;
+  /** Por ejemplo `epp-1.0.0`. */
+  versionModelo: string;
+}
+
 /** Foto de avance (005); la URL firmada vence a los 30 minutos. */
 export interface Foto {
   id: string;
@@ -136,6 +145,8 @@ export interface Foto {
   registradoPor: Pick<Usuario, 'id' | 'nombre'> | null;
   registradoEn: string;
   urlDescarga: string;
+  /** 301: null si la foto no se analizó. */
+  deteccion: DeteccionEpp | null;
 }
 
 export interface FotosPagina {
@@ -322,6 +333,7 @@ export const CONSULTA_FOTOS = gql<
           registradoPor { id nombre }
           registradoEn
           urlDescarga
+          deteccion { personas sinCasco sinChaleco versionModelo }
         }
         total
         pagina

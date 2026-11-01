@@ -4,4 +4,4 @@ Requisitos y diseño: `docs/specs/301-deteccion-epp/` de la carpeta que agrupa l
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Pedir `deteccion` en la consulta de fotos y mostrar la etiqueta de EPP en cada miniatura (con alertas, sin alertas, sin análisis); pruebas del componente
+- [x] Pedir `deteccion` en la consulta de fotos y mostrar la etiqueta de EPP en cada miniatura (con alertas, sin alertas, sin análisis); pruebas del componente

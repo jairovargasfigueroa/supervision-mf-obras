@@ -20,6 +20,7 @@ h3 {
 }
 
 figure {
+  position: relative;
   margin: 0;
   overflow: hidden;
   background: var(--sv-superficie);
@@ -33,6 +34,25 @@ img {
   aspect-ratio: 4 / 3;
   object-fit: cover;
   background: var(--sv-fondo);
+}
+
+// 301: etiqueta de EPP sobre la miniatura (docs/diseno-visual.md: atención si hay alertas, neutro si no)
+.etiqueta-epp {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sv-texto-secundario);
+  background: var(--sv-primario-suave);
+
+  &.alerta {
+    color: var(--sv-atencion);
+    background: var(--sv-atencion-suave);
+  }
 }
 
 figcaption {

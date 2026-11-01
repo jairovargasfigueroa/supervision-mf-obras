@@ -26,6 +26,15 @@
                   [alt]="'Foto de ' + grupo.titulo + ' del ' + fechaHora(foto.registradoEn)"
                 />
               </a>
+              @if (etiquetaEpp(foto.deteccion); as etiqueta) {
+                <span
+                  class="etiqueta-epp"
+                  [class.alerta]="etiqueta.alerta"
+                  tabindex="0"
+                  [matTooltip]="etiqueta.ayuda"
+                  >{{ etiqueta.texto }}</span
+                >
+              }
               <figcaption>
                 <span class="sv-numero">{{ fechaHora(foto.registradoEn) }}</span>
                 <span class="secundario">{{ foto.registradoPor?.nombre ?? '—' }}</span>

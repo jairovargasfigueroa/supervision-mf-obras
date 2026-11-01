@@ -273,6 +273,7 @@ const FOTO = (id: string, registradoEn: string) => ({
   registradoPor: { id: 'm1', nombre: 'Mario Quispe' },
   registradoEn,
   urlDescarga: `https://s3.example/${id}.jpg`,
+  deteccion: null,
 });
 
 /** La planilla después de cargar 120 en la losa (como la devuelve Obras). */

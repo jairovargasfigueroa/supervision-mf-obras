@@ -10,13 +10,14 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import type { Subscription } from 'rxjs';
 import { AvisoSinConexionComponent } from '../../compartido/aviso-sin-conexion.component';
 import { EstadoErrorComponent } from '../../compartido/estado-error.component';
 import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, registrarError } from '../../nucleo/errores';
 import { formatearFechaHora } from '../../nucleo/formato';
-import type { Foto, Partida } from '../obras.graphql';
+import type { DeteccionEpp, Foto, Partida } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
 
 export interface GrupoFotos {
@@ -54,13 +55,45 @@ export function agruparFotos(
     }));
 }
 
+/** Etiqueta de EPP de una miniatura (301, criterio 12). */
+export interface EtiquetaEpp {
+  texto: string;
+  /** true si hay personas sin casco o sin chaleco: color de atención; si no, neutro. */
+  alerta: boolean;
+  /** Ayuda al pasar el cursor. */
+  ayuda: string;
+}
+
+/**
+ * 301, criterio 12: «N sin casco · M sin chaleco» si alguno es mayor que 0 y «Sin alertas de EPP» si ambos son 0; la
+ * foto no analizada (`deteccion` null) no lleva etiqueta.
+ */
+export function etiquetaEpp(deteccion: DeteccionEpp | null): EtiquetaEpp | null {
+  if (!deteccion) return null;
+  const alerta = deteccion.sinCasco > 0 || deteccion.sinChaleco > 0;
+  return {
+    texto: alerta
+      ? `${deteccion.sinCasco} sin casco · ${deteccion.sinChaleco} sin chaleco`
+      : 'Sin alertas de EPP',
+    alerta,
+    ayuda: `Detectado en el celular con el modelo ${deteccion.versionModelo}`,
+  };
+}
+
 /**
  * Pestaña «Fotos» (006 y 005, criterio 6): galería por partida con fecha y autor. Pide la primera página al abrirse;
- * «Cargar más fotos» trae las siguientes. Si no responde, «No disponible por el momento» (criterio 4).
+ * «Cargar más fotos» trae las siguientes. Si no responde, «No disponible por el momento» (criterio 4). 301: cada
+ * foto analizada en el celular lleva la etiqueta de EPP sobre la miniatura (etiquetaEpp).
  */
 @Component({
   selector: 'app-pestana-fotos',
-  imports: [MatButtonModule, EstadoErrorComponent, EstadoVacioComponent, AvisoSinConexionComponent],
+  imports: [
+    MatButtonModule,
+    MatTooltipModule,
+    EstadoErrorComponent,
+    EstadoVacioComponent,
+    AvisoSinConexionComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pestana-fotos.component.html',
   styleUrls: ['./pestana.scss', './pestana-fotos.component.scss'],
@@ -82,6 +115,7 @@ export class PestanaFotosComponent implements OnInit {
   protected readonly grupos = computed(() => agruparFotos(this.fotos(), this.partidas()));
   protected readonly hayMas = computed(() => this.fotos().length < this.total());
   protected readonly fechaHora = formatearFechaHora;
+  protected readonly etiquetaEpp = etiquetaEpp;
 
   private pagina = 1;
   private consulta?: Subscription;

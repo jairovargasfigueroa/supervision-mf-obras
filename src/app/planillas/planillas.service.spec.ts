@@ -96,6 +96,7 @@ describe('PlanillasService.fotosDelPeriodo', () => {
     registradoPor: null,
     registradoEn,
     urlDescarga: `https://s3.example/${id}.jpg`,
+    deteccion: null,
   });
   const pagina = (numero: number, items: ReturnType<typeof foto>[], total: number) => ({
     obra: {

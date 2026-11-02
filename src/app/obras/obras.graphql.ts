@@ -10,7 +10,7 @@ import {
 
 export type EstadoObra = 'SIN_CONTRATO' | 'EN_EJECUCION' | 'CONCLUIDA';
 export type EstadoPlanilla = 'BORRADOR' | 'PRESENTADA' | 'APROBANDO' | 'APROBADA' | 'OBSERVADA';
-export type EstadoCobro = 'PENDIENTE' | 'VENCIDO';
+export type EstadoCobro = 'PENDIENTE' | 'VENCIDO' | 'PAGADO';
 
 export type Rol = 'admin' | 'residente' | 'gerente' | 'maestro' | 'almacenero' | 'cliente';
 
@@ -199,6 +199,26 @@ export interface Cobro {
   emitidoEn: string;
   venceEn: string;
   estado: EstadoCobro;
+  /** 201: fecha de pago (`AAAA-MM-DD`); null si no está pagado. */
+  pagadoEn: string | null;
+  /** 201: n.º de comprobante del pago (opcional). */
+  comprobante: string | null;
+  /** 201: correos enviados al cliente por la automatización, ordenados por `enviadoEn`. */
+  envios: EnvioCobro[];
+}
+
+/** 201: tipo de correo que n8n envió al cliente por un cobro. */
+export type TipoEnvioCobro =
+  | 'NOTA_COBRO'
+  | 'RECORDATORIO_POR_VENCER'
+  | 'RECORDATORIO_VENCIDO'
+  | 'CONSTANCIA_PAGO';
+
+export interface EnvioCobro {
+  tipo: TipoEnvioCobro;
+  destinatario: string;
+  /** Instante ISO. */
+  enviadoEn: string;
 }
 
 export interface RegistrarObraEntrada {
@@ -353,12 +373,29 @@ export const CONSULTA_PLANILLAS = gql<{ obra: { id: string; planillas: PlanillaR
   }
 `;
 
-/** `null` sin error si el rol no es admin ni gerente. */
+const CAMPOS_COBRO = `
+  id numero planillaId montoNeto emitidoEn venceEn estado
+  pagadoEn comprobante envios { tipo destinatario enviadoEn }
+`;
+
+/** `null` sin error si el rol no es admin ni gerente. 201: datos del pago y correos enviados. */
 export const CONSULTA_COBROS = gql<{ obra: { id: string; cobros: Cobro[] | null } | null }, { id: string }>`
   query CobrosObra($id: ID!) {
     obra(id: $id) {
       id
-      cobros { id numero planillaId montoNeto emitidoEn venceEn estado }
+      cobros { ${CAMPOS_COBRO} }
+    }
+  }
+`;
+
+/** 201: solo admin; no se reintenta. `comprobante` va solo si se escribió. */
+export const MUTACION_REGISTRAR_PAGO_COBRO = gql<
+  { registrarPagoCobro: Cobro },
+  { cobroId: string; pagadoEn: string; comprobante?: string }
+>`
+  mutation RegistrarPagoCobro($cobroId: ID!, $pagadoEn: String!, $comprobante: String) {
+    registrarPagoCobro(cobroId: $cobroId, pagadoEn: $pagadoEn, comprobante: $comprobante) {
+      ${CAMPOS_COBRO}
     }
   }
 `;

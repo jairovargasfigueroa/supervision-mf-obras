@@ -122,7 +122,7 @@ describe('PestanaCobrosComponent', () => {
     return { fixture, elemento: fixture.nativeElement as HTMLElement };
   }
 
-  it('lista número, emisión, vencimiento, monto y estado (criterio 3)', () => {
+  it('lista número, emisión, vencimiento, monto, estado y correos (criterio 3; 201)', () => {
     const { elemento } = montar(() =>
       of<Cobro[]>([
         {
@@ -133,6 +133,11 @@ describe('PestanaCobrosComponent', () => {
           emitidoEn: '2026-12-02T15:00:00Z',
           venceEn: '2027-01-01',
           estado: 'PENDIENTE',
+          pagadoEn: null,
+          comprobante: null,
+          envios: [
+            { tipo: 'NOTA_COBRO', destinatario: 'cliente1@correo.test', enviadoEn: '2026-12-02T12:05:00Z' },
+          ],
         },
         {
           id: 'c0',
@@ -142,12 +147,15 @@ describe('PestanaCobrosComponent', () => {
           emitidoEn: '2026-10-02T15:00:00Z',
           venceEn: '2026-11-01',
           estado: 'VENCIDO',
+          pagadoEn: null,
+          comprobante: null,
+          envios: [],
         },
       ]),
     );
     expect(filas(elemento)).toEqual([
-      ['COB-0001', '02/12/2026', '01/01/2027', 'Bs 84.630,50', 'Pendiente'],
-      ['COB-0000', '02/10/2026', '01/11/2026', 'Bs 1.000,00', 'Vencido'],
+      ['COB-0001', '02/12/2026', '01/01/2027', 'Bs 84.630,50', 'Pendiente', 'Nota enviada'],
+      ['COB-0000', '02/10/2026', '01/11/2026', 'Bs 1.000,00', 'Vencido', 'Nota sin enviar'],
     ]);
   });
 

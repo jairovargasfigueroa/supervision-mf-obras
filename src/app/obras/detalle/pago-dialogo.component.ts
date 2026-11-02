@@ -61,7 +61,13 @@ const CIERRAN_CON_AVISO = ['COBRO_YA_PAGADO', 'COBRO_NO_ENCONTRADO'];
  */
 @Component({
   selector: 'app-pago-dialogo',
-  imports: [MatButtonModule, MatDialogModule, MatFormFieldModule, MatInputModule, ReactiveFormsModule],
+  imports: [
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    ReactiveFormsModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h2 mat-dialog-title>Registrar pago</h2>
@@ -125,7 +131,8 @@ const CIERRAN_CON_AVISO = ['COBRO_YA_PAGADO', 'COBRO_NO_ENCONTRADO'];
 })
 export class PagoDialogoComponent {
   private readonly datos = inject<DatosPagoDialogo>(MAT_DIALOG_DATA);
-  private readonly dialogo = inject<MatDialogRef<PagoDialogoComponent, ResultadoPago>>(MatDialogRef);
+  private readonly dialogo =
+    inject<MatDialogRef<PagoDialogoComponent, ResultadoPago>>(MatDialogRef);
 
   protected readonly numero = this.datos.cobro.numero;
   protected readonly monto = formatearMonto(this.datos.cobro.montoNeto);
@@ -150,7 +157,9 @@ export class PagoDialogoComponent {
   protected readonly error = signal<string | null>(null);
 
   protected mensajeFecha(): string {
-    return this.formulario.controls.pagadoEn.errors?.['required'] ? 'Obligatorio' : FECHA_PAGO_FUERA_DE_RANGO;
+    return this.formulario.controls.pagadoEn.errors?.['required']
+      ? 'Obligatorio'
+      : FECHA_PAGO_FUERA_DE_RANGO;
   }
 
   enviar(): void {

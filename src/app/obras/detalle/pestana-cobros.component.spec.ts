@@ -59,7 +59,11 @@ const PAGADO: Cobro = {
   comprobante: 'TRF-883412',
   envios: [
     { tipo: 'NOTA_COBRO', destinatario: 'cliente1@correo.test', enviadoEn: '2027-02-02T12:05:00Z' },
-    { tipo: 'CONSTANCIA_PAGO', destinatario: 'cliente1@correo.test', enviadoEn: '2027-04-28T19:30:00Z' },
+    {
+      tipo: 'CONSTANCIA_PAGO',
+      destinatario: 'cliente1@correo.test',
+      enviadoEn: '2027-04-28T19:30:00Z',
+    },
   ],
 };
 
@@ -116,7 +120,9 @@ function escribir(entrada: HTMLInputElement, valor: string) {
 }
 
 const fila = (elemento: HTMLElement, numero: string) =>
-  [...elemento.querySelectorAll('tr.mat-mdc-row')].find((tr) => texto(tr.querySelector('td')) === numero)!;
+  [...elemento.querySelectorAll('tr.mat-mdc-row')].find(
+    (tr) => texto(tr.querySelector('td')) === numero,
+  )!;
 const celda = (elemento: HTMLElement, numero: string, columna: string) =>
   fila(elemento, numero).querySelector(`td.mat-column-${columna}`);
 
@@ -133,7 +139,10 @@ describe('PestanaCobrosComponent (201)', () => {
       { texto: 'Recordatorio por vencer', enviadoEn: '29/03/2027 08:00', sinEnviar: false },
       { texto: 'Recordatorio de vencido', enviadoEn: '02/04/2027 08:00', sinEnviar: false },
     ]);
-    expect(etiquetasCorreos(PAGADO).map((e) => e.texto)).toEqual(['Nota enviada', 'Constancia enviada']);
+    expect(etiquetasCorreos(PAGADO).map((e) => e.texto)).toEqual([
+      'Nota enviada',
+      'Constancia enviada',
+    ]);
     expect(etiquetasCorreos({ envios: [] })).toEqual([
       { texto: 'Nota sin enviar', enviadoEn: null, sinEnviar: true },
     ]);
@@ -182,13 +191,17 @@ describe('PestanaCobrosComponent (201)', () => {
     await esperar();
     expect(texto(elemento.querySelector('tr.mat-mdc-header-row'))).toContain('Correos');
 
-    const etiquetas = (numero: string) => [...celda(elemento, numero, 'correos')!.querySelectorAll('.correo')];
+    const etiquetas = (numero: string) => [
+      ...celda(elemento, numero, 'correos')!.querySelectorAll('.correo'),
+    ];
     expect(etiquetas('COB-2027-0002').map(texto)).toEqual([
       'Nota enviada',
       'Recordatorio por vencer',
       'Recordatorio de vencido',
     ]);
-    expect(etiquetas('COB-2027-0002')[0].getAttribute('aria-label')).toBe('Nota enviada · 02/03/2027 08:05');
+    expect(etiquetas('COB-2027-0002')[0].getAttribute('aria-label')).toBe(
+      'Nota enviada · 02/03/2027 08:05',
+    );
     expect(etiquetas('COB-2027-0001').map(texto)).toEqual(['Nota enviada', 'Constancia enviada']);
     // 19:30 UTC = 15:30 en La Paz
     expect(etiquetas('COB-2027-0001')[1].getAttribute('aria-label')).toBe(
@@ -345,7 +358,9 @@ describe('PestanaCobrosComponent (201)', () => {
       await esperar();
       await vi.waitFor(() => expect(dialogo()).toBeNull());
       await esperar();
-      expect(texto(elemento.querySelector('.aviso[role="alert"]'))).toBe('El cobro ya está pagado.');
+      expect(texto(elemento.querySelector('.aviso[role="alert"]'))).toBe(
+        'El cobro ya está pagado.',
+      );
       expect(servicio.cobros).toHaveBeenCalledTimes(2);
       expect(avisos).toEqual([]);
     });
@@ -359,7 +374,9 @@ describe('PestanaCobrosComponent (201)', () => {
       await esperar();
       await vi.waitFor(() => expect(dialogo()).toBeNull());
       await esperar();
-      expect(texto(elemento.querySelector('.aviso[role="alert"]'))).toBe('No se encontró el cobro.');
+      expect(texto(elemento.querySelector('.aviso[role="alert"]'))).toBe(
+        'No se encontró el cobro.',
+      );
     });
 
     it('FECHA_PAGO_INVALIDA se muestra en el diálogo, que sigue abierto', async () => {

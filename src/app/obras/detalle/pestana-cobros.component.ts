@@ -77,7 +77,9 @@ export function admitePago(cobro: Pick<Cobro, 'estado'>): boolean {
 export const AVISO_PAGO_REGISTRADO = 'Pago registrado';
 
 export function textoPagado(cobro: Pick<Cobro, 'estado' | 'pagadoEn'>): string | null {
-  return cobro.estado === 'PAGADO' && cobro.pagadoEn ? `Pagado el ${formatearFecha(cobro.pagadoEn)}` : null;
+  return cobro.estado === 'PAGADO' && cobro.pagadoEn
+    ? `Pagado el ${formatearFecha(cobro.pagadoEn)}`
+    : null;
 }
 
 /**

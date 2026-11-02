@@ -206,7 +206,11 @@ export class ObrasService {
   }
 
   /** Registra el pago completo de un cobro (201, solo admin); el comprobante va solo si se escribió. */
-  registrarPagoCobro(cobroId: string, pagadoEn: string, comprobante: string | null): Observable<Cobro> {
+  registrarPagoCobro(
+    cobroId: string,
+    pagadoEn: string,
+    comprobante: string | null,
+  ): Observable<Cobro> {
     return this.apollo
       .mutate({
         mutation: MUTACION_REGISTRAR_PAGO_COBRO,

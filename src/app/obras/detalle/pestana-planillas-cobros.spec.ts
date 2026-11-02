@@ -136,7 +136,11 @@ describe('PestanaCobrosComponent', () => {
           pagadoEn: null,
           comprobante: null,
           envios: [
-            { tipo: 'NOTA_COBRO', destinatario: 'cliente1@correo.test', enviadoEn: '2026-12-02T12:05:00Z' },
+            {
+              tipo: 'NOTA_COBRO',
+              destinatario: 'cliente1@correo.test',
+              enviadoEn: '2026-12-02T12:05:00Z',
+            },
           ],
         },
         {

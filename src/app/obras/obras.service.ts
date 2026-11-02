@@ -13,6 +13,7 @@ import {
   CONSULTA_PLANILLAS,
   CONSULTA_USUARIOS,
   MUTACION_REGISTRAR_OBRA,
+  MUTACION_REGISTRAR_PAGO_COBRO,
   MUTACION_REVISAR_CONSUMO_ATIPICO,
   type AgentesObra,
   type Cobro,
@@ -202,6 +203,20 @@ export class ObrasService {
         variables: comentario ? { id, estado, comentario } : { id, estado },
       })
       .pipe(map((resultado) => resultado.data!.revisarConsumoAtipico));
+  }
+
+  /** Registra el pago completo de un cobro (201, solo admin); el comprobante va solo si se escribió. */
+  registrarPagoCobro(
+    cobroId: string,
+    pagadoEn: string,
+    comprobante: string | null,
+  ): Observable<Cobro> {
+    return this.apollo
+      .mutate({
+        mutation: MUTACION_REGISTRAR_PAGO_COBRO,
+        variables: comprobante ? { cobroId, pagadoEn, comprobante } : { cobroId, pagadoEn },
+      })
+      .pipe(map((resultado) => resultado.data!.registrarPagoCobro));
   }
 
   /**

@@ -36,3 +36,27 @@ export function periodosDesde(fechaInicio: string, hasta: string): string[] {
 export function periodoDe(instante: string): string {
   return periodoActual(new Date(instante));
 }
+
+const anioMesDia = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ZONA_NEGOCIO,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+/** Fecha de hoy en La Paz (`2026-11-02`). */
+export function fechaActual(ahora: Date = new Date()): string {
+  const partes = anioMesDia.formatToParts(ahora);
+  const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)!.value;
+  return `${parte('year')}-${parte('month')}-${parte('day')}`;
+}
+
+/**
+ * Fecha en La Paz (`AAAA-MM-DD`) de un instante ISO: un cobro emitido a las 23:30 del 1 en La Paz es del 1. Una fecha
+ * sin hora (`2027-04-02`, como llega `emitidoEn` del cobro) se devuelve tal cual: `new Date('2027-04-02')` es 00:00
+ * UTC, que en La Paz todavía es el día anterior.
+ */
+export function fechaDe(instante: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(instante)) return instante;
+  return fechaActual(new Date(instante));
+}

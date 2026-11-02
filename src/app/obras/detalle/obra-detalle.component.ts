@@ -105,6 +105,10 @@ export class ObraDetalleComponent implements OnInit {
     const roles = this.sesion.usuario()?.roles ?? [];
     return roles.includes('admin') || roles.includes('gerente');
   });
+  /** «Registrar pago» en la pestaña Cobros: solo admin (201, criterios 1 y 5). */
+  protected readonly esAdmin = computed(
+    () => this.sesion.usuario()?.roles.includes('admin') ?? false,
+  );
   /** «Nueva planilla»: solo el residente asignado y con la obra en ejecución (007, criterios 1 y 10). */
   protected readonly puedeCrearPlanilla = computed(() => {
     const obra = this.obra();

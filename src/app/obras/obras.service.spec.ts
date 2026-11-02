@@ -9,6 +9,7 @@ import {
   CONSULTA_MATERIAL_COMPARADO,
   CONSULTA_OBRA,
   CONSULTA_OBRAS,
+  MUTACION_REGISTRAR_PAGO_COBRO,
   MUTACION_REVISAR_CONSUMO_ATIPICO,
 } from './obras.graphql';
 import { instalarPlataformaFalsa, type PlataformaFalsa } from '../nucleo/plataforma-falsa';
@@ -184,6 +185,36 @@ describe('ObrasService', () => {
         comentario: 'Se usó en otra obra',
       });
     });
+  });
+
+  it('registrarPagoCobro manda el comprobante solo si se escribió y devuelve el cobro (201)', async () => {
+    servicio.registrarPagoCobro('c1', '2027-04-28', null).subscribe();
+    expect(gateway.expectOne(MUTACION_REGISTRAR_PAGO_COBRO).operation.variables).toEqual({
+      cobroId: 'c1',
+      pagadoEn: '2027-04-28',
+    });
+    const respuesta = firstValueFrom(servicio.registrarPagoCobro('c1', '2027-04-28', 'TRF-883412'));
+    const operacion = gateway.expectOne(MUTACION_REGISTRAR_PAGO_COBRO);
+    expect(operacion.operation.variables).toEqual({
+      cobroId: 'c1',
+      pagadoEn: '2027-04-28',
+      comprobante: 'TRF-883412',
+    });
+    const cobro = {
+      __typename: 'Cobro',
+      id: 'c1',
+      numero: 'COB-2027-0001',
+      planillaId: 'pl1',
+      montoNeto: 330149.1,
+      emitidoEn: '2027-04-02',
+      venceEn: '2027-05-02',
+      estado: 'PAGADO',
+      pagadoEn: '2027-04-28',
+      comprobante: 'TRF-883412',
+      envios: [],
+    };
+    operacion.flush({ data: { registrarPagoCobro: cobro } });
+    expect(await respuesta).toMatchObject({ estado: 'PAGADO', pagadoEn: '2027-04-28' });
   });
 
   describe('agentes (502)', () => {

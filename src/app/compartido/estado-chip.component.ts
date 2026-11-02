@@ -39,6 +39,7 @@ export const ETIQUETAS: Record<EstadoMostrable, string> = {
   OBSERVADA: 'Observada',
   PENDIENTE: 'Pendiente',
   VENCIDO: 'Vencido',
+  PAGADO: 'Pagado',
   EN_RIESGO: 'En riesgo',
   EXCEDIDO: 'Excedido',
   ATIPICO_PENDIENTE: 'Pendiente',
@@ -59,8 +60,10 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
   APROBANDO: 'atencion',
   APROBADA: 'exito',
   OBSERVADA: 'error',
-  PENDIENTE: 'exito',
+  // 201: con PAGADO en verde, el cobro PENDIENTE pasa a neutro (diseño de la 201)
+  PENDIENTE: 'neutro',
   VENCIDO: 'error',
+  PAGADO: 'exito',
   EN_RIESGO: 'atencion',
   EXCEDIDO: 'error',
   ATIPICO_PENDIENTE: 'atencion',
@@ -80,7 +83,7 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
   selector: 'app-estado-chip',
   imports: [MatChipsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<mat-chip [class]="'chip ' + clase()" disableRipple>{{ etiqueta() }}</mat-chip>`,
+  template: `<mat-chip [class]="'chip ' + clase()" disableRipple>{{ texto() ?? etiqueta() }}</mat-chip>`,
   styles: `
     .chip {
       --mat-chip-elevated-container-color: var(--sv-primario-suave);
@@ -110,6 +113,8 @@ const COLORES: Record<EstadoMostrable, 'neutro' | 'primario' | 'apagado' | 'exit
 })
 export class EstadoChipComponent {
   readonly estado = input.required<EstadoMostrable>();
+  /** Texto en lugar de la etiqueta del estado, con su mismo color (201: «Pagado el 28/04/2027»). */
+  readonly texto = input<string | null>(null);
   protected readonly etiqueta = computed(() => ETIQUETAS[this.estado()]);
   protected readonly clase = computed(() => COLORES[this.estado()]);
 }

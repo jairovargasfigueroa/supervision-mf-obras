@@ -48,6 +48,10 @@ const MENSAJES: Record<string, string> = {
   SUGERENCIA_NO_ENCONTRADA: 'No encontramos esa sugerencia o no tienes acceso a ella.',
   SUGERENCIA_YA_DECIDIDA: 'Esta sugerencia ya fue aprobada o rechazada. Recarga la lista.',
   MOTIVO_INVALIDO: 'El motivo debe tener entre 10 y 500 caracteres.',
+  // Cobranza (201)
+  COBRO_NO_ENCONTRADO: 'No se encontró el cobro.',
+  COBRO_YA_PAGADO: 'El cobro ya está pagado.',
+  FECHA_PAGO_INVALIDA: 'La fecha de pago no puede ser futura ni anterior a la emisión del cobro.',
 };
 
 /** «—» con este aviso cuando el servicio de IA no responde (402 y 403, criterio 12). */

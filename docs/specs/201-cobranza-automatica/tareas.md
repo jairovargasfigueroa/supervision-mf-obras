@@ -6,5 +6,5 @@ Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Aplicar «Cambios a contratos y datos» que tocan este proyecto (`docs/contratos.md`, `docs/app.md`)
 - [x] Pestaña «Cobros»: estado `PAGADO` en verde con «Pagado el dd/mm/aaaa» y el comprobante; columna «Correos» con las etiquetas de envío y «Nota sin enviar»
-- [ ] Diálogo «Registrar pago» (solo `admin`): fecha (por defecto hoy, entre la emisión y hoy) y comprobante opcional; mutación `registrarPagoCobro`; mensajes de error del catálogo; la tabla se actualiza
+- [x] Diálogo «Registrar pago» (solo `admin`): fecha (por defecto hoy, entre la emisión y hoy) y comprobante opcional; mutación `registrarPagoCobro`; mensajes de error del catálogo; la tabla se actualiza
 - [ ] Pruebas (estados, etiquetas, diálogo por rol, validaciones, errores)

@@ -1,4 +1,4 @@
-import { periodoActual, periodoDe, periodosDesde } from './periodos';
+import { fechaActual, fechaDe, periodoActual, periodoDe, periodosDesde } from './periodos';
 
 describe('periodos', () => {
   it('el mes actual se cuenta en hora de La Paz (UTC−4)', () => {
@@ -19,5 +19,12 @@ describe('periodos', () => {
   it('el periodo de un instante se cuenta en hora de La Paz', () => {
     expect(periodoDe('2026-12-01T03:30:00Z')).toBe('2026-11');
     expect(periodoDe('2026-12-01T04:00:00Z')).toBe('2026-12');
+  });
+
+  it('la fecha de hoy y la de un instante se cuentan en hora de La Paz (201)', () => {
+    expect(fechaActual(new Date('2027-04-29T03:59:00Z'))).toBe('2027-04-28');
+    expect(fechaActual(new Date('2027-04-29T04:00:00Z'))).toBe('2027-04-29');
+    expect(fechaDe('2027-01-01T02:00:00Z')).toBe('2026-12-31');
+    expect(fechaDe('2027-04-02T12:00:00Z')).toBe('2027-04-02');
   });
 });

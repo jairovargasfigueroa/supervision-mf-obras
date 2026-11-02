@@ -19,7 +19,7 @@ const PENDIENTE: Cobro = {
   numero: 'COB-2027-0003',
   planillaId: 'pl3',
   montoNeto: 330149.1,
-  emitidoEn: '2027-04-02T12:00:00Z',
+  emitidoEn: '2027-04-02',
   venceEn: '2027-05-02',
   estado: 'PENDIENTE',
   pagadoEn: null,
@@ -157,6 +157,8 @@ describe('PestanaCobrosComponent (201)', () => {
 
   it('textoPagado: «Pagado el dd/mm/aaaa» solo en PAGADO', () => {
     expect(textoPagado(PAGADO)).toBe('Pagado el 28/04/2027');
+    // Fecha sin hora: no se corre al día anterior por la zona de La Paz
+    expect(textoPagado({ estado: 'PAGADO', pagadoEn: '2027-01-01' })).toBe('Pagado el 01/01/2027');
     expect(textoPagado(PENDIENTE)).toBeNull();
     expect(textoPagado(VENCIDO)).toBeNull();
   });
@@ -330,6 +332,27 @@ describe('PestanaCobrosComponent (201)', () => {
       botonDialogo('Registrar').click();
       await esperar();
       expect(registrar).toHaveBeenCalledWith('c3', '2027-04-02', null);
+    });
+
+    it('límite mínimo: la emisión sin hora (AAAA-MM-DD) es el mínimo, no el día anterior', async () => {
+      const registrar = vi.fn(() => of(PAGADO));
+      // Emitido el 01/01/2027: en UTC−4, new Date('2027-01-01') sería todavía el 31/12/2026
+      const { esperar } = await abrir({ registrar }, [{ ...PENDIENTE, emitidoEn: '2027-01-01' }]);
+      const fecha = campo('Fecha de pago');
+      expect(fecha.getAttribute('min')).toBe('2027-01-01');
+
+      escribir(fecha, '2026-12-31');
+      botonDialogo('Registrar').click();
+      await esperar();
+      expect(texto(dialogo()!.querySelector('mat-error'))).toBe(
+        'La fecha de pago no puede ser futura ni anterior a la emisión del cobro.',
+      );
+      expect(registrar).not.toHaveBeenCalled();
+
+      escribir(fecha, '2027-01-01');
+      botonDialogo('Registrar').click();
+      await esperar();
+      expect(registrar).toHaveBeenCalledWith('c3', '2027-01-01', null);
     });
 
     it('el comprobante admite hasta 50 caracteres', async () => {

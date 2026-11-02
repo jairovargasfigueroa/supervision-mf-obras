@@ -288,7 +288,7 @@ describe('ObraDetalleComponent', () => {
         numero: 'COB-2027-0001',
         planillaId: 'pl1',
         montoNeto: 1000,
-        emitidoEn: '2026-11-02T12:00:00Z',
+        emitidoEn: '2026-11-02',
         venceEn: '2026-12-02',
         estado: 'PENDIENTE',
         pagadoEn: null,

@@ -206,7 +206,7 @@ describe('ObrasService', () => {
       numero: 'COB-2027-0001',
       planillaId: 'pl1',
       montoNeto: 330149.1,
-      emitidoEn: '2027-04-02T12:00:00Z',
+      emitidoEn: '2027-04-02',
       venceEn: '2027-05-02',
       estado: 'PAGADO',
       pagadoEn: '2027-04-28',

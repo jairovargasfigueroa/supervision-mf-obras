@@ -26,5 +26,8 @@ describe('periodos', () => {
     expect(fechaActual(new Date('2027-04-29T04:00:00Z'))).toBe('2027-04-29');
     expect(fechaDe('2027-01-01T02:00:00Z')).toBe('2026-12-31');
     expect(fechaDe('2027-04-02T12:00:00Z')).toBe('2027-04-02');
+    // Fecha sin hora (así llega `emitidoEn` del cobro): tal cual, sin pasar a UTC
+    expect(fechaDe('2027-04-02')).toBe('2027-04-02');
+    expect(fechaDe('2027-01-01')).toBe('2027-01-01');
   });
 });

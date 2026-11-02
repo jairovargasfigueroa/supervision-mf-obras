@@ -51,7 +51,12 @@ export function fechaActual(ahora: Date = new Date()): string {
   return `${parte('year')}-${parte('month')}-${parte('day')}`;
 }
 
-/** Fecha en La Paz (`AAAA-MM-DD`) de un instante ISO: un cobro emitido a las 23:30 del 1 en La Paz es del 1. */
+/**
+ * Fecha en La Paz (`AAAA-MM-DD`) de un instante ISO: un cobro emitido a las 23:30 del 1 en La Paz es del 1. Una fecha
+ * sin hora (`2027-04-02`, como llega `emitidoEn` del cobro) se devuelve tal cual: `new Date('2027-04-02')` es 00:00
+ * UTC, que en La Paz todavía es el día anterior.
+ */
 export function fechaDe(instante: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(instante)) return instante;
   return fechaActual(new Date(instante));
 }

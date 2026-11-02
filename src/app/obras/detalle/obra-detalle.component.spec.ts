@@ -280,6 +280,34 @@ describe('ObraDetalleComponent', () => {
     });
 
     it.each([
+      ['admin', true],
+      ['gerente', false],
+    ])('pestaña Cobros: %s ve «Registrar pago»: %s (201, criterios 1 y 5)', async (rol, puede) => {
+      const cobro = {
+        id: 'c1',
+        numero: 'COB-2027-0001',
+        planillaId: 'pl1',
+        montoNeto: 1000,
+        emitidoEn: '2026-11-02T12:00:00Z',
+        venceEn: '2026-12-02',
+        estado: 'PENDIENTE',
+        pagadoEn: null,
+        comprobante: null,
+        envios: [],
+      };
+      const { fixture, elemento } = await abrir(EN_EJECUCION, {
+        roles: [rol],
+        pestanas: { cobros: () => of([cobro]) },
+      });
+      await abrirPestana(fixture, elemento, 'Cobros');
+      expect(texto(elemento)).toContain('COB-2027-0001');
+      const hayBoton = [...elemento.querySelectorAll('button')].some(
+        (b) => b.textContent?.trim() === 'Registrar pago',
+      );
+      expect(hayBoton).toBe(puede);
+    });
+
+    it.each([
       ['admin', 'r1', true],
       ['residente', 'u1', true],
       ['residente', 'r1', false],

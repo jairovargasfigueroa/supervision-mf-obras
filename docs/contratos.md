@@ -27,8 +27,13 @@
   - 201, registro de pago: «Registrar pago» solo para `admin` y solo en cobros `PENDIENTE` o `VENCIDO` (con «Requiere conexión»). Diálogo con «Fecha de pago» (obligatoria; por defecto hoy en La Paz; entre la fecha de emisión en La Paz y hoy) y «N.º de comprobante (opcional)» (hasta 50 caracteres sin los espacios de los bordes; vacío no se manda) → `registrarPagoCobro(cobroId, pagadoEn: "AAAA-MM-DD", comprobante)`, que devuelve el cobro. Al terminar, aviso «Pago registrado» y la pestaña se vuelve a pedir. `COBRO_YA_PAGADO` («El cobro ya está pagado.») y `COBRO_NO_ENCONTRADO` («No se encontró el cobro.») cierran el diálogo, muestran su aviso en la pestaña y la recargan; `FECHA_PAGO_INVALIDA` («La fecha de pago no puede ser futura ni anterior a la emisión del cobro.») y `DATOS_INVALIDOS` se muestran en el diálogo.
   - Errores: `extensions.codigo` → texto de `docs/mensajes.md` en `nucleo/errores.ts`.
 - Shell: sesión del usuario en `window.plataforma.sesion` (token con `obtenerToken()`).
+  - 601: la dirección del gateway sale **solo** de `window.plataforma.configuracion.gatewayUrl` (el shell la toma de su `configuracion.json` al publicar). Si no existe (abierto solo para desarrollar, en el 4201), usa la de desarrollo `http://localhost:4000/graphql`. Este microfrontend no tiene configuración propia de direcciones.
   - 104: `sesion.sinConexion` (en «modo sin conexión» `obtenerToken()` rechaza con `Error('SIN_CONEXION')`); `window.plataforma.conexion` (`enLinea`, `reportarFallo()`) y el evento `plataforma:conexion`; `window.plataforma.almacen` (consultas guardadas y borradores de planilla en IndexedDB, separados por usuario por el shell) y el evento `plataforma:borradores`. Contrato completo en `docs/contratos.md` de erp-shell. Este microfrontend no usa IndexedDB, `localStorage` ni service workers propios. Si `window.plataforma.almacen` no existe (abierto solo para desarrollar), trabaja como antes, sin guardar nada.
 
 ## Expone
 
 - Módulo remoto por Native Federation, montado por el shell en su ruta.
+
+## Publicación (601)
+
+Se compila una vez (`npm run build`, carpeta `dist/mf-obras/browser`) y se publica como archivos estáticos; no escribe ningún archivo al publicar (las direcciones las da el shell). Reglas del servidor de estáticos: CORS en `remoteEntry.json` y los `.js` para el origen del shell, y SPA (si el archivo no existe, `index.html`).

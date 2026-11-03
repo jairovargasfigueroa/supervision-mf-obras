@@ -5,5 +5,5 @@ Requisitos y diseño: `docs/specs/601-contenedores-ci/` de la carpeta que agrupa
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
 - [x] Aplicar «Cambios a contratos y datos» que tocan este proyecto (`docs/`, `CLAUDE.md`, `.env.example`)
-- [ ] Leer la dirección del gateway de `window.plataforma.configuracion` (como mf-materiales y mf-supervision) con respaldo al valor de desarrollo; pruebas
+- [x] Leer la dirección del gateway de `window.plataforma.configuracion` (como mf-materiales y mf-supervision) con respaldo al valor de desarrollo; pruebas
 - [ ] `.github/workflows/ci.yml`: job `prueba` (pruebas y compilación) y job `archivos`

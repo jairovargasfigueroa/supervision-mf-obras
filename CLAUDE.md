@@ -22,6 +22,10 @@ npm test             # ng test (Vitest)
 npm run build        # genera dist/mf-obras/browser/remoteEntry.json
 ```
 
+## Publicación (601)
+
+- Se compila **una vez** y se publica como archivos estáticos (sin imagen Docker). La dirección del gateway sale de `window.plataforma.configuracion.gatewayUrl`, que publica el shell; sin el shell, la de desarrollo. CI en `.github/workflows/ci.yml`.
+
 ## Native Federation
 
 - `federation.config.mjs`: expone `./Routes` → `src/app/app.routes.ts`; el shell las monta bajo `/obras`.

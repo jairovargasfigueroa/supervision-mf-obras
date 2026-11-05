@@ -63,7 +63,7 @@ declare global {
 }
 
 /** URL del gateway para desarrollar sin el shell (docs/entorno-local.md). */
-const GATEWAY_DESARROLLO = 'http://localhost:4000/graphql';
+export const GATEWAY_DESARROLLO = 'http://localhost:4000/graphql';
 
 /**
  * Lee la sesión que publica el shell en window.plataforma; nunca habla con Keycloak (convenciones,
@@ -84,8 +84,9 @@ export class SesionService {
     inject(DestroyRef).onDestroy(() => window.removeEventListener(EVENTO_SESION, actualizar));
   }
 
+  /** 601: solo de la configuración que publica el shell (configuracion.json al publicar); sin el shell, la de desarrollo. */
   get gatewayUrl(): string {
-    return window.plataforma?.configuracion.gatewayUrl ?? GATEWAY_DESARROLLO;
+    return window.plataforma?.configuracion?.gatewayUrl || GATEWAY_DESARROLLO;
   }
 
   /** Token vigente que entrega el shell; vacío si no hay sesión. */

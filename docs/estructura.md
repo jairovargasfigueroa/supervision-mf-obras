@@ -20,7 +20,7 @@ src/
     app.routes.ts                    # rutas expuestas al shell: '', ':id', 'nueva', ':id/planillas/nueva', 'planillas/:id' (dentro del ERP, bajo /obras: /obras/{id}/planillas/nueva y /obras/planillas/{id})
     app.config.ts                    # Apollo con el token de window.plataforma.sesion
     nucleo/
-      sesion.service.ts              # lee window.plataforma.sesion (signals); copia de los tipos de window.plataforma
+      sesion.service.ts              # lee window.plataforma.sesion (signals) y gatewayUrl de window.plataforma.configuracion (601; respaldo de desarrollo); copia de los tipos de window.plataforma
       conexion.service.ts            # 104: window.plataforma.conexion como signal (enLinea) y «Requiere conexión»
       respaldo.service.ts            # 104: consultaConRespaldo (guarda la última respuesta completa; sin conexión, la del equipo)
       plataforma-falsa.ts            # solo pruebas: window.plataforma con conexión y almacén en memoria

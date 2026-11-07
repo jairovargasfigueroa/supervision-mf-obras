@@ -1,6 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { NonNullableFormBuilder } from '@angular/forms';
-import { aEntrada, codigosRepetidos, crearFormulario, crearPartida, mensajeCampo, type FormObra } from './formulario';
+import {
+  aEntrada,
+  codigosRepetidos,
+  crearFormulario,
+  crearPartida,
+  fijarInsumos,
+  mensajeCampo,
+  type FormObra,
+  type ValorInsumo,
+} from './formulario';
 
 function formularioCompleto(): FormObra {
   const fb = TestBed.inject(NonNullableFormBuilder);
@@ -29,6 +38,7 @@ function formularioCompleto(): FormObra {
     cantidadContratada: 850,
     precioUnitario: 420.5,
     meses: 'nov-dic',
+    insumos: [],
   });
   return formulario;
 }
@@ -112,7 +122,15 @@ describe('formulario de «Nueva obra» (002, criterios 2 a 6)', () => {
     it('el código no se repite en la obra (sin distinguir mayúsculas ni espacios)', () => {
       const formulario = formularioCompleto();
       const otra = crearPartida(TestBed.inject(NonNullableFormBuilder));
-      otra.setValue({ codigo: ' p-01 ', nombre: 'Otra', unidad: 'm2', cantidadContratada: 1, precioUnitario: 1, meses: '' });
+      otra.setValue({
+        codigo: ' p-01 ',
+        nombre: 'Otra',
+        unidad: 'm2',
+        cantidadContratada: 1,
+        precioUnitario: 1,
+        meses: '',
+        insumos: [],
+      });
       formulario.controls.partidas.push(otra);
       expect(formulario.controls.partidas.getError('codigoRepetido')).toEqual(['P-01']);
       expect(codigosRepetidos(['A', 'B', 'a', '', ''])).toEqual(['A']);
@@ -125,6 +143,67 @@ describe('formulario de «Nueva obra» (002, criterios 2 a 6)', () => {
       partida.patchValue({ cantidadContratada: 0, precioUnitario: -1 });
       expect(partida.controls.cantidadContratada.hasError('mayorQueCero')).toBe(true);
       expect(partida.controls.precioUnitario.hasError('mayorQueCero')).toBe(true);
+    });
+  });
+
+  describe('insumos previstos por partida (criterio 4)', () => {
+    function conInsumos(valores: ValorInsumo[]): FormObra {
+      const formulario = formularioCompleto();
+      fijarInsumos(formulario.controls.partidas.at(0), TestBed.inject(NonNullableFormBuilder), valores);
+      return formulario;
+    }
+
+    it('una partida empieza sin insumos y se registra sin ese campo', () => {
+      const formulario = formularioCompleto();
+      expect(formulario.controls.partidas.at(0).controls.insumos.length).toBe(0);
+      expect(aEntrada(formulario).partidas[0]).not.toHaveProperty('insumos');
+    });
+
+    it('los insumos de la partida viajan en registrarObra', () => {
+      const formulario = conInsumos([
+        { materialId: 'mat-cemento', cantidadPorUnidad: 1.1 },
+        { materialId: 'mat-fierro', cantidadPorUnidad: 4.5 },
+      ]);
+      expect(formulario.valid).toBe(true);
+      expect(aEntrada(formulario).partidas[0].insumos).toEqual([
+        { materialId: 'mat-cemento', cantidadPorUnidad: 1.1 },
+        { materialId: 'mat-fierro', cantidadPorUnidad: 4.5 },
+      ]);
+    });
+
+    it('cada insumo necesita material y cantidad por unidad mayor a 0', () => {
+      const formulario = conInsumos([{ materialId: '', cantidadPorUnidad: 0 }]);
+      const insumo = formulario.controls.partidas.at(0).controls.insumos.at(0);
+      expect(insumo.controls.materialId.hasError('required')).toBe(true);
+      expect(insumo.controls.cantidadPorUnidad.hasError('mayorQueCero')).toBe(true);
+      expect(formulario.valid).toBe(false);
+    });
+
+    it('el mismo material no se repite en una partida (INSUMO_REPETIDO)', () => {
+      const formulario = conInsumos([
+        { materialId: 'mat-cemento', cantidadPorUnidad: 1 },
+        { materialId: 'mat-cemento', cantidadPorUnidad: 2 },
+      ]);
+      expect(formulario.controls.partidas.at(0).controls.insumos.getError('insumoRepetido')).toEqual(['mat-cemento']);
+      expect(formulario.valid).toBe(false);
+    });
+
+    it('el mismo material sí puede ir en partidas distintas', () => {
+      const fb = TestBed.inject(NonNullableFormBuilder);
+      const formulario = conInsumos([{ materialId: 'mat-cemento', cantidadPorUnidad: 1 }]);
+      const otra = crearPartida(fb);
+      otra.patchValue({ codigo: 'P-02', nombre: 'Muro', unidad: 'm2', cantidadContratada: 1, precioUnitario: 1 });
+      fijarInsumos(otra, fb, [{ materialId: 'mat-cemento', cantidadPorUnidad: 0.5 }]);
+      formulario.controls.partidas.push(otra);
+      expect(otra.valid).toBe(true);
+    });
+
+    it('fijarInsumos reemplaza los insumos anteriores de la partida', () => {
+      const fb = TestBed.inject(NonNullableFormBuilder);
+      const formulario = conInsumos([{ materialId: 'mat-cemento', cantidadPorUnidad: 1 }]);
+      const partida = formulario.controls.partidas.at(0);
+      fijarInsumos(partida, fb, [{ materialId: 'mat-arena', cantidadPorUnidad: 0.03 }]);
+      expect(partida.controls.insumos.getRawValue()).toEqual([{ materialId: 'mat-arena', cantidadPorUnidad: 0.03 }]);
     });
   });
 

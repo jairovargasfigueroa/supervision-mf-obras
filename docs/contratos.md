@@ -6,7 +6,7 @@
 
 - Gateway GraphQL: áreas obras, planillas, finanzas (contrato y saldo) y materiales (consumos frente a previsto).
   - 1.10: `obras` (lista).
-  - 002: `usuarios(rol)` (listas de asignación), `registrarObra(entrada)` (pide solo `id` y `estado`) y `obra(id)` básica (datos, `motivoRechazoContrato`, asignaciones, `contrato` y `partidas`). `materiales(soloActivos: true)` para los insumos se usará cuando el gateway la tenga (003); hasta entonces las partidas se registran sin insumos.
+  - 002: `usuarios(rol)` (listas de asignación), `registrarObra(entrada)` (pide solo `id` y `estado`) y `obra(id)` básica (datos, `motivoRechazoContrato`, asignaciones, `contrato` y `partidas`). `materiales(soloActivos: true, pagina: 1, tamano: 100)` (003) para elegir los insumos previstos de cada partida (`id`, `codigo`, `nombre`, `unidad`, `unidadPlural`); `registrarObra` los manda en `partidas[].insumos` (`materialId`, `cantidadPorUnidad`). Si el catálogo no carga, las partidas se registran sin insumos.
   - 006: `obras(estado, busqueda)` con `avancePct`, `plazoPct` y `enRiesgo`. Detalle `obra(id)` en varias consultas, según el SDL de `docs/contratos/graphql-erp.md`:
     - principal (encabezado, asignaciones, contrato, indicadores y `partidas` con `ejecutadaAcumulada` y `avancePct`), con `errorPolicy: 'all'`: si llega la obra con errores en campos secundarios (nombres de Keycloak), se muestra igual; sin obra, `OBRA_NO_ENCONTRADA` → «Obra no encontrada»;
     - `finanzas { saldoDisponible totalCobrado }`, solo para `admin` y `gerente` y cuando la obra ya tiene `contrato.contratoId`;

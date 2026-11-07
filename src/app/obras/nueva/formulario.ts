@@ -34,6 +34,14 @@ export type FormContrato = FormGroup<{
   firmadoEn: FormControl<string>;
 }>;
 
+/** Insumo previsto de una partida: material del catálogo (solo activos) y cantidad por unidad de partida. */
+export type FormInsumo = FormGroup<{
+  materialId: FormControl<string>;
+  cantidadPorUnidad: FormControl<number | null>;
+}>;
+
+export type ValorInsumo = { materialId: string; cantidadPorUnidad: number | null };
+
 export type FormPartida = FormGroup<{
   codigo: FormControl<string>;
   nombre: FormControl<string>;
@@ -41,6 +49,7 @@ export type FormPartida = FormGroup<{
   cantidadContratada: FormControl<number | null>;
   precioUnitario: FormControl<number | null>;
   meses: FormControl<string>;
+  insumos: FormArray<FormInsumo>;
 }>;
 
 export type FormPartidas = FormArray<FormPartida>;
@@ -82,6 +91,37 @@ export const presupuestoCoincideConMonto: ValidatorFn = (formulario) => {
   return resumirPresupuesto(partidas, contrato.monto).coincide ? null : { presupuesto: true };
 };
 
+/** Un material no se repite en la misma partida (criterio 4; Obras responde INSUMO_REPETIDO). */
+export const insumosSinRepetir: ValidatorFn = (arreglo) => {
+  const ids = (arreglo as FormArray<FormInsumo>).controls.map((insumo) => insumo.controls.materialId.value);
+  const vistos = new Set<string>();
+  const repetidos = new Set<string>();
+  for (const id of ids.filter(Boolean)) {
+    if (vistos.has(id)) repetidos.add(id);
+    vistos.add(id);
+  }
+  return repetidos.size ? { insumoRepetido: [...repetidos] } : null;
+};
+
+export function crearInsumo(fb: NonNullableFormBuilder, valor?: ValorInsumo): FormInsumo {
+  return fb.group({
+    materialId: fb.control(valor?.materialId ?? '', Validators.required),
+    cantidadPorUnidad: new FormControl<number | null>(valor?.cantidadPorUnidad ?? null, [
+      Validators.required,
+      mayorQueCero,
+    ]),
+  });
+}
+
+/** Reemplaza los insumos de la partida por `valores` (lo que se aceptó en el diálogo de insumos). */
+export function fijarInsumos(partida: FormPartida, fb: NonNullableFormBuilder, valores: readonly ValorInsumo[]): void {
+  const insumos = partida.controls.insumos;
+  insumos.clear({ emitEvent: false });
+  for (const valor of valores) insumos.push(crearInsumo(fb, valor), { emitEvent: false });
+  insumos.updateValueAndValidity();
+  insumos.markAsTouched();
+}
+
 export function codigosRepetidos(codigos: readonly string[]): string[] {
   const vistos = new Set<string>();
   const repetidos = new Set<string>();
@@ -100,6 +140,7 @@ export function crearPartida(fb: NonNullableFormBuilder): FormPartida {
     cantidadContratada: new FormControl<number | null>(null, [Validators.required, mayorQueCero]),
     precioUnitario: new FormControl<number | null>(null, [Validators.required, mayorQueCero]),
     meses: fb.control(''),
+    insumos: fb.array<FormInsumo>([], { validators: insumosSinRepetir }),
   });
 }
 
@@ -133,8 +174,8 @@ export function crearFormulario(fb: NonNullableFormBuilder): FormObra {
 }
 
 /**
- * Valor del formulario (ya válido) → entrada de la mutación. Los textos van sin espacios de más; sin insumos (003);
- * la zona solo si se eligió (401).
+ * Valor del formulario (ya válido) → entrada de la mutación. Los textos van sin espacios de más; los insumos y la zona
+ * (401) solo si se cargaron.
  */
 export function aEntrada(formulario: FormObra): RegistrarObraEntrada {
   const { datos, contrato, partidas } = formulario.getRawValue();
@@ -163,6 +204,14 @@ export function aEntrada(formulario: FormObra): RegistrarObraEntrada {
       cantidadContratada: partida.cantidadContratada!,
       precioUnitario: partida.precioUnitario!,
       ...(partida.meses.trim() ? { meses: partida.meses.trim() } : {}),
+      ...(partida.insumos.length
+        ? {
+            insumos: partida.insumos.map((insumo) => ({
+              materialId: insumo.materialId,
+              cantidadPorUnidad: insumo.cantidadPorUnidad!,
+            })),
+          }
+        : {}),
     })),
   };
 }

@@ -9,6 +9,7 @@ import { EstadoVacioComponent } from '../../compartido/estado-vacio.component';
 import { leerError, mensajeDeError, registrarError, type ErrorLeido } from '../../nucleo/errores';
 import { formatearImporte, formatearMonto } from '../../nucleo/formato';
 import { SesionService } from '../../nucleo/sesion.service';
+import type { MaterialCatalogo } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
 import { aEntrada, codigosRepetidos, crearFormulario, revisarAlCambiarEstado } from './formulario';
 import { PasoContratoComponent } from './paso-contrato.component';
@@ -49,6 +50,9 @@ export class ObraNuevaComponent implements OnInit {
   protected readonly formulario = crearFormulario(inject(NonNullableFormBuilder));
   protected readonly usuarios = signal<UsuariosPorRol>(SIN_USUARIOS);
   protected readonly estadoUsuarios = signal<'cargando' | 'listo' | 'error'>('cargando');
+  /** Materiales activos del catálogo para los insumos previstos (criterio 4). */
+  protected readonly materiales = signal<MaterialCatalogo[]>([]);
+  protected readonly estadoMateriales = signal<'cargando' | 'listo' | 'error'>('cargando');
 
   /** Suma del presupuesto y diferencia con el monto, recalculadas con cada cambio (criterio 5). */
   protected readonly resumen = toSignal(
@@ -78,7 +82,22 @@ export class ObraNuevaComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.sesion.dentroDelErp() && this.esAdmin()) this.cargarUsuarios();
+    if (this.sesion.dentroDelErp() && this.esAdmin()) {
+      this.cargarUsuarios();
+      this.cargarMateriales();
+    }
+  }
+
+  /** Catálogo de materiales activos (003); si no carga, las partidas se registran sin insumos. */
+  cargarMateriales(): void {
+    this.estadoMateriales.set('cargando');
+    this.servicio.materialesActivos().subscribe({
+      next: (materiales) => {
+        this.materiales.set(materiales);
+        this.estadoMateriales.set('listo');
+      },
+      error: () => this.estadoMateriales.set('error'),
+    });
   }
 
   /** Las cuatro listas de asignación salen de Keycloak, una consulta por rol. */

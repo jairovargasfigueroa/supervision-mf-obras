@@ -30,7 +30,7 @@ src/
       periodos.ts                    # mes y fecha actuales en La Paz y meses desde el inicio de la obra (cálculo puro)
     obras/
       lista/        obras-lista.component.ts (+ .html, .scss)
-      nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro)
+      nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro), insumos-dialogo.component.ts (insumos previstos de una partida: material activo y cantidad por unidad, sin repetir material)
       detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts (+ .scss; 301: etiquetaEpp, etiqueta de casco y chaleco sobre cada miniatura), pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado), consumos-atipicos.component.ts (+ .html, .scss; 403: sección de la pestaña Material), revision-dialogo.component.ts (403: «Es normal» y «Confirmar problema»), pestana-agentes.component.ts (+ .html, .scss; 502: hallazgos y sugerencias pendientes de los agentes), pestana-cobros.component.scss (201: comprobante y etiquetas de los correos), pago-dialogo.component.ts (201: «Registrar pago» con fecha y comprobante; validarFechaPago)
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables

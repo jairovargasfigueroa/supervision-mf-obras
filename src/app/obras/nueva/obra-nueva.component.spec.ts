@@ -1,9 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { Router, provideRouter } from '@angular/router';
-import type { FormObra } from './formulario';
+import { NonNullableFormBuilder } from '@angular/forms';
+import { fijarInsumos, type FormObra } from './formulario';
 import { of, throwError } from 'rxjs';
-import type { Rol, Usuario, ZonaObra } from '../obras.graphql';
+import type { MaterialCatalogo, Rol, Usuario, ZonaObra } from '../obras.graphql';
 import { ObrasService } from '../obras.service';
 import { ObraNuevaComponent } from './obra-nueva.component';
 
@@ -13,6 +14,11 @@ const USUARIOS: Record<string, Usuario[]> = {
   almacenero: [{ id: 'a1', nombre: 'Mario Vaca', correo: null }],
   cliente: [{ id: 'c1', nombre: 'Gobierno Municipal', correo: null }],
 };
+
+const MATERIALES: MaterialCatalogo[] = [
+  { id: 'mat-cem', codigo: 'CEM-IP30', nombre: 'Cemento IP-30', unidad: 'bolsa', unidadPlural: 'bolsas' },
+  { id: 'mat-fie', codigo: 'FIE-12', nombre: 'Fierro de 1/2"', unidad: 'kg', unidadPlural: 'kg' },
+];
 
 function sesionCon(roles: string[]): void {
   window.plataforma = {
@@ -28,7 +34,10 @@ function sesionCon(roles: string[]): void {
 function montar(servicio: Partial<ObrasService>) {
   TestBed.configureTestingModule({
     imports: [ObraNuevaComponent],
-    providers: [provideRouter([]), { provide: ObrasService, useValue: servicio }],
+    providers: [
+      provideRouter([]),
+      { provide: ObrasService, useValue: { materialesActivos: () => of(MATERIALES), ...servicio } },
+    ],
   });
   const fixture = TestBed.createComponent(ObraNuevaComponent);
   fixture.detectChanges();
@@ -136,6 +145,7 @@ describe('ObraNuevaComponent', () => {
         cantidadContratada: 850,
         precioUnitario: 420.5,
         meses: '',
+        insumos: [],
       });
     }
     const pulsarGuardar = (elemento: HTMLElement) =>
@@ -159,6 +169,36 @@ describe('ObraNuevaComponent', () => {
         partidas: [{ codigo: 'P-01', nombre: 'Losa', unidad: 'm2', cantidadContratada: 850, precioUnitario: 420.5 }],
       });
       expect(navegar.mock.calls[0][0]).toEqual(['..', 'b9']);
+    });
+
+    it('envía los insumos previstos de la partida (criterio 4)', () => {
+      sesionCon(['admin']);
+      const registrar = vi.fn(() => of({ id: 'b9', estado: 'SIN_CONTRATO' as const }));
+      const { fixture, elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), registrar });
+      vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      const componente = fixture.componentInstance as unknown as { formulario: FormObra };
+      completar(componente);
+      fijarInsumos(componente.formulario.controls.partidas.at(0), TestBed.inject(NonNullableFormBuilder), [
+        { materialId: 'mat-cem', cantidadPorUnidad: 1.1 },
+        { materialId: 'mat-fie', cantidadPorUnidad: 4.5 },
+      ]);
+      fixture.detectChanges();
+      expect(elemento.textContent).toContain('2 insumos');
+
+      pulsarGuardar(elemento);
+      expect(registrar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          partidas: [
+            expect.objectContaining({
+              codigo: 'P-01',
+              insumos: [
+                { materialId: 'mat-cem', cantidadPorUnidad: 1.1 },
+                { materialId: 'mat-fie', cantidadPorUnidad: 4.5 },
+              ],
+            }),
+          ],
+        }),
+      );
     });
 
     it('envía la zona elegida (401, criterio 1)', () => {
@@ -204,6 +244,24 @@ describe('ObraNuevaComponent', () => {
       expect(elemento.textContent).toContain('Los datos del contrato no son válidos');
       expect(elemento.querySelector('.mat-step-header[aria-selected="true"]')?.textContent).toContain('Contrato');
     });
+  });
+
+  it('admin pide al gateway los materiales activos para los insumos (criterio 4)', () => {
+    sesionCon(['admin']);
+    const materialesActivos = vi.fn(() => of(MATERIALES));
+    const { elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), materialesActivos });
+    expect(materialesActivos).toHaveBeenCalledTimes(1);
+    const botonInsumos = elemento.querySelector<HTMLButtonElement>('button.insumos')!;
+    expect(botonInsumos.textContent?.trim()).toBe('Agregar');
+    expect(botonInsumos.disabled).toBe(false);
+  });
+
+  it('si el catálogo no carga, avisa y deja registrar las partidas sin insumos', () => {
+    sesionCon(['admin']);
+    const materialesActivos = vi.fn(() => throwError(() => new Error('sin conexión')));
+    const { elemento } = montar({ usuarios: (rol: Rol) => of(USUARIOS[rol]), materialesActivos });
+    expect(elemento.textContent).toContain('No se pudo cargar el catálogo de materiales.');
+    expect(elemento.querySelector<HTMLButtonElement>('button.insumos')!.disabled).toBe(true);
   });
 
   it('si Keycloak no responde ofrece reintentar la carga de usuarios', () => {

@@ -272,6 +272,31 @@ export const CONSULTA_USUARIOS = gql<{ usuarios: Usuario[] }, { rol: Rol }>`
   }
 `;
 
+/** Material del catálogo para elegir los insumos previstos de una partida (002, criterio 4). */
+export interface MaterialCatalogo {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  unidadPlural: string;
+}
+
+/** Materiales activos del catálogo (`materiales` de la 003); 100 es el máximo por página que acepta Materiales. */
+export const CONSULTA_MATERIALES_ACTIVOS = gql<{ materiales: { items: MaterialCatalogo[]; total: number } }, { tamano: number }>`
+  query MaterialesActivos($tamano: Int!) {
+    materiales(soloActivos: true, pagina: 1, tamano: $tamano) {
+      items {
+        id
+        codigo
+        nombre
+        unidad
+        unidadPlural
+      }
+      total
+    }
+  }
+`;
+
 export const CONSULTA_OBRA = gql<{ obra: Obra | null }, { id: string }>`
   query Obra($id: ID!) {
     obra(id: $id) {

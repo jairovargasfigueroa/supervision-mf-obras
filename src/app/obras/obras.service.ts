@@ -8,6 +8,7 @@ import {
   CONSULTA_FINANZAS_OBRA,
   CONSULTA_FOTOS,
   CONSULTA_MATERIAL_COMPARADO,
+  CONSULTA_MATERIALES_ACTIVOS,
   CONSULTA_OBRA,
   CONSULTA_OBRAS,
   CONSULTA_PLANILLAS,
@@ -24,6 +25,7 @@ import {
   type FiltrosObras,
   type FinanzasObra,
   type FotosPagina,
+  type MaterialCatalogo,
   type Obra,
   type ObraResumen,
   type PlanillaResumen,
@@ -40,6 +42,9 @@ import {
 
 /** Fotos por página (el valor por defecto de `fotos` en el contrato; Obras acepta hasta 100). */
 export const TAMANO_PAGINA_FOTOS = 50;
+
+/** Materiales activos que se ofrecen como insumos: el máximo por página que acepta Materiales. */
+export const TAMANO_MATERIALES_INSUMOS = 100;
 
 /** Datos del área de obras: los componentes no usan Apollo directo (docs/estructura.md). */
 @Injectable()
@@ -66,6 +71,17 @@ export class ObrasService {
     return this.apollo
       .query({ query: CONSULTA_USUARIOS, variables: { rol }, fetchPolicy: 'network-only' })
       .pipe(map((resultado) => resultado.data?.usuarios ?? []));
+  }
+
+  /** Materiales activos del catálogo, para los insumos previstos de las partidas (002, criterio 4). */
+  materialesActivos(): Observable<MaterialCatalogo[]> {
+    return this.apollo
+      .query({
+        query: CONSULTA_MATERIALES_ACTIVOS,
+        variables: { tamano: TAMANO_MATERIALES_INSUMOS },
+        fetchPolicy: 'network-only',
+      })
+      .pipe(map((resultado) => resultado.data?.materiales.items ?? []));
   }
 
   /**

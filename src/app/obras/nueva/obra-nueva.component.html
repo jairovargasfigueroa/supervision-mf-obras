@@ -46,7 +46,13 @@
       </mat-step>
 
       <mat-step label="Presupuesto">
-        <app-paso-presupuesto [partidas]="formulario.controls.partidas" [total]="resumen().total" />
+        <app-paso-presupuesto
+          [partidas]="formulario.controls.partidas"
+          [total]="resumen().total"
+          [materiales]="materiales()"
+          [estadoMateriales]="estadoMateriales()"
+          (reintentarMateriales)="cargarMateriales()"
+        />
         @if (
           mensajePresupuesto() && (formulario.controls.partidas.touched || resumen().total > 0)
         ) {

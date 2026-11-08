@@ -1,0 +1,86 @@
+@if (aviso(); as aviso) {
+  <div class="aviso aviso-atencion" role="alert">{{ aviso }}</div>
+}
+@if (guardadoEn(); as guardadoEn) {
+  <app-aviso-sin-conexion [guardadoEn]="guardadoEn" />
+}
+@if (estado() === 'cargando') {
+  <p class="cargando">Cargando cobros…</p>
+} @else if (estado() === 'sin-datos') {
+  <app-aviso-sin-conexion />
+} @else if (estado() === 'error') {
+  <app-estado-error (reintentar)="cargar()" />
+} @else if (cobros().length === 0) {
+  <app-estado-vacio texto="Aún no hay cobros." icono="payments" />
+} @else {
+  <div class="tabla">
+    <table mat-table [dataSource]="cobros()">
+      <ng-container matColumnDef="numero">
+        <th mat-header-cell *matHeaderCellDef>Número</th>
+        <td mat-cell *matCellDef="let cobro" class="sv-numero">{{ cobro.numero }}</td>
+      </ng-container>
+      <ng-container matColumnDef="emitidoEn">
+        <th mat-header-cell *matHeaderCellDef>Emisión</th>
+        <td mat-cell *matCellDef="let cobro">{{ fecha(cobro.emitidoEn) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="venceEn">
+        <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+        <td mat-cell *matCellDef="let cobro">{{ fecha(cobro.venceEn) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="montoNeto">
+        <th mat-header-cell *matHeaderCellDef class="numero">Monto</th>
+        <td mat-cell *matCellDef="let cobro" class="numero sv-numero">
+          {{ monto(cobro.montoNeto) }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let cobro">
+          <app-estado-chip [estado]="cobro.estado" [texto]="pagado(cobro)" />
+          @if (cobro.estado === 'PAGADO' && cobro.comprobante) {
+            <div class="comprobante">Comprobante: {{ cobro.comprobante }}</div>
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="correos">
+        <th mat-header-cell *matHeaderCellDef>Correos</th>
+        <td mat-cell *matCellDef="let cobro">
+          <span class="correos">
+            @for (correo of correos(cobro); track $index) {
+              @if (correo.sinEnviar) {
+                <span class="correo sin-enviar">{{ correo.texto }}</span>
+              } @else {
+                <span
+                  class="correo"
+                  tabindex="0"
+                  [matTooltip]="correo.enviadoEn"
+                  [attr.aria-label]="correo.texto + ' · ' + correo.enviadoEn"
+                  >{{ correo.texto }}</span
+                >
+              }
+            }
+          </span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef><span class="oculto">Acciones</span></th>
+        <td mat-cell *matCellDef="let cobro">
+          @if (admitePago(cobro)) {
+            <app-requiere-conexion>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="!conexion.enLinea()"
+                (click)="registrarPago(cobro)"
+              >
+                Registrar pago
+              </button>
+            </app-requiere-conexion>
+          }
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="columnas()"></tr>
+      <tr mat-row *matRowDef="let fila; columns: columnas()"></tr>
+    </table>
+  </div>
+}

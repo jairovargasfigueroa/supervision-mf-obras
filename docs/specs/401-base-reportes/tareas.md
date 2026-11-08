@@ -4,4 +4,4 @@ Requisitos y diseño: `docs/specs/401-base-reportes/` de la carpeta que agrupa l
 
 Marca cada tarea al terminarla (con sus pruebas y su commit).
 
-- [ ] Selector «Zona» (cinco opciones y «Sin zona») en el registro de obra; zona en la lista y el detalle; pruebas de componentes
+- [x] Selector «Zona» (cinco opciones y «Sin zona») en el registro de obra; zona en la lista y el detalle; pruebas de componentes

@@ -17,24 +17,31 @@ src/
   main.ts / bootstrap.ts
   styles.scss
   app/
-    app.routes.ts                    # rutas expuestas al shell: '', ':id', 'nueva', ':id/planillas/nueva', 'planillas/:id'
+    app.routes.ts                    # rutas expuestas al shell: '', ':id', 'nueva', ':id/planillas/nueva', 'planillas/:id' (dentro del ERP, bajo /obras: /obras/{id}/planillas/nueva y /obras/planillas/{id})
     app.config.ts                    # Apollo con el token de window.plataforma.sesion
     nucleo/
-      sesion.service.ts              # lee window.plataforma.sesion (signals)
+      sesion.service.ts              # lee window.plataforma.sesion (signals) y gatewayUrl de window.plataforma.configuracion (601; respaldo de desarrollo); copia de los tipos de window.plataforma
+      conexion.service.ts            # 104: window.plataforma.conexion como signal (enLinea) y «Requiere conexión»
+      respaldo.service.ts            # 104: consultaConRespaldo (guarda la última respuesta completa; sin conexión, la del equipo)
+      plataforma-falsa.ts            # solo pruebas: window.plataforma con conexión y almacén en memoria
       graphql.config.ts
       errores.ts                     # extensions.codigo → mensaje para el usuario
-      formato.ts
+      formato.ts                     # montos, cantidades, porcentajes, fechas y periodos («Noviembre 2026»)
+      periodos.ts                    # mes y fecha actuales en La Paz y meses desde el inicio de la obra (cálculo puro)
     obras/
       lista/        obras-lista.component.ts (+ .html, .scss)
-      nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, presupuesto.ts (cálculo puro)
-      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts, pestana-planillas.component.ts, pestana-cobros.component.ts
+      nueva/        obra-nueva.component.ts, paso-datos.component.ts, paso-contrato.component.ts, paso-presupuesto.component.ts, formulario.ts (formulario tipado, validadores y conversión a la entrada), presupuesto.ts (cálculo puro), insumos-dialogo.component.ts (insumos previstos de una partida: material activo y cantidad por unidad, sin repetir material)
+      detalle/      obra-detalle.component.ts, pestana-material.component.ts, pestana-fotos.component.ts (+ .scss; 301: etiquetaEpp, etiqueta de casco y chaleco sobre cada miniatura), pestana-planillas.component.ts, pestana-cobros.component.ts (cada uno con su .html), pestana.scss (estilos comunes de las pestañas), riesgo-modelo.component.ts (402: riesgo del modelo en el encabezado), consumos-atipicos.component.ts (+ .html, .scss; 403: sección de la pestaña Material), revision-dialogo.component.ts (403: «Es normal» y «Confirmar problema»), pestana-agentes.component.ts (+ .html, .scss; 502: hallazgos y sugerencias pendientes de los agentes), pestana-cobros.component.scss (201: comprobante y etiquetas de los correos), pago-dialogo.component.ts (201: «Registrar pago» con fecha y comprobante; validarFechaPago)
       obras.graphql.ts               # documentos gql de esta área
       obras.service.ts               # usa Apollo; devuelve signals o observables
     planillas/
-      nueva/        planilla-nueva.component.ts
-      editor/       planilla-editor.component.ts, totales.ts (cálculo puro, solo ayuda visual)
+      nueva/        planilla-nueva.component.ts (+ .html; esResidenteAsignado, que usa también el detalle)
+      editor/       planilla-editor.component.ts (+ .html, .scss), totales.ts (cálculo puro, solo ayuda visual), borrador-dialogo.component.ts (104: conflicto o planilla no editable)
       planillas.graphql.ts, planillas.service.ts
-    compartido/     estado-chip.component.ts, estado-vacio.component.ts, estado-error.component.ts
+      envio-borradores.service.ts    # 104: envía los borradores locales al volver la conexión y cada 60 s (se provee en las rutas)
+      planillas.scss                 # estilos comunes de nueva y editor
+    compartido/     estado-chip.component.ts (estados de obra, planilla y cobro, «En riesgo» y «Excedido»), estado-vacio.component.ts, estado-error.component.ts, aviso-sin-conexion.component.ts (104: «Sin conexión · datos del …» o «No hay datos guardados de esta pantalla»), requiere-conexion.component.ts (104: ayuda «Requiere conexión» de los botones que escriben)
+      sugerencia-decision/   # 502: diálogo de aprobar (comentario opcional) y rechazar (motivo obligatorio con contador) una sugerencia de un agente: .component.ts, .graphql.ts (tipo Sugerencia y mutaciones), .service.ts (abre el diálogo y envía la mutación; se provee en las rutas)
 federation.config.mjs                # expone las rutas (./Routes) para el shell
 ```
 

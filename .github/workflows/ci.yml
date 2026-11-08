@@ -1,0 +1,54 @@
+# 601: pruebas y compilación en cada PR; en push a main (release), la carpeta compilada como artefacto.
+# Se compila una vez: la dirección del gateway la publica el shell en window.plataforma.configuracion.
+name: ci
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Pruebas
+        run: npm test -- --watch=false
+      - name: Compilación
+        run: npm run build
+
+  archivos:
+    needs: prueba
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Compilación
+        run: npm run build
+      - name: Carpeta compilada como artefacto
+        uses: actions/upload-artifact@v7
+        with:
+          name: mf-obras-${{ github.sha }}
+          path: dist/mf-obras/browser
+          if-no-files-found: error
+          retention-days: 90

@@ -1,8 +1,11 @@
 import {
   formatearCantidad,
+  formatearDiaHora,
   formatearFecha,
   formatearFechaHora,
   formatearMonto,
+  formatearNumero,
+  formatearPeriodo,
   formatearPorcentaje,
 } from './formato';
 
@@ -18,6 +21,11 @@ describe('formato', () => {
     expect(formatearCantidad(1234.5678, 'kg')).toBe('1.234,568 kg');
   });
 
+  it('formatea números sin unidad con hasta 3 decimales', () => {
+    expect(formatearNumero(1234.5678)).toBe('1.234,568');
+    expect(formatearNumero(850)).toBe('850');
+  });
+
   it('formatea porcentajes', () => {
     expect(formatearPorcentaje(32.5)).toBe('32,5 %');
     expect(formatearPorcentaje(100)).toBe('100 %');
@@ -27,8 +35,17 @@ describe('formato', () => {
     expect(formatearFecha('2026-11-15')).toBe('15/11/2026');
   });
 
+  it('formatea periodos mensuales con el nombre del mes', () => {
+    expect(formatearPeriodo('2026-11')).toBe('Noviembre 2026');
+    expect(formatearPeriodo('2027-01')).toBe('Enero 2027');
+  });
+
   it('formatea instantes en hora de La Paz (UTC−4)', () => {
     expect(formatearFecha('2026-11-16T02:00:00Z')).toBe('15/11/2026');
     expect(formatearFechaHora('2026-11-15T18:30:00Z')).toBe('15/11/2026 14:30');
+  });
+
+  it('formatea día y hora sin el año (borrador local, 104)', () => {
+    expect(formatearDiaHora('2026-11-16T02:05:00Z')).toBe('15/11 22:05');
   });
 });

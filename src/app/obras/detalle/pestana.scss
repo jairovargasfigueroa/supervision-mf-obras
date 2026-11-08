@@ -1,0 +1,69 @@
+// Estilos comunes de las pestañas del detalle (Material, Fotos, Planillas y Cobros).
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0 0;
+}
+
+.cargando,
+.ayuda,
+.secundario {
+  color: var(--sv-texto-secundario);
+}
+
+.ayuda {
+  margin: 0;
+  font-size: 12px;
+}
+
+.herramientas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: var(--sv-radio-control);
+}
+
+.aviso-atencion {
+  color: var(--sv-atencion);
+  background: var(--sv-atencion-suave);
+}
+
+.tabla {
+  overflow-x: auto;
+  background: var(--sv-superficie);
+  border: 1px solid var(--sv-borde);
+  border-radius: var(--sv-radio-tarjeta);
+}
+
+table {
+  width: 100%;
+}
+
+.mat-mdc-row,
+.mat-mdc-header-row {
+  height: 40px;
+}
+
+.numero {
+  text-align: right;
+  white-space: nowrap;
+}
+
+// Consumo excedido (docs/diseno-visual.md: error)
+tr.excedido td {
+  color: var(--sv-error);
+  background: var(--sv-error-suave);
+}
+
+.marca {
+  margin-left: 8px;
+}

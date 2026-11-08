@@ -1,13 +1,28 @@
 import { gql } from 'apollo-angular';
+import {
+  CAMPOS_SUGERENCIA,
+  type Agente,
+  type Sugerencia,
+} from '../compartido/sugerencia-decision/sugerencia-decision.graphql';
 
-// Documentos GraphQL del área de obras (docs/contratos.md: consulta obras).
+// Documentos GraphQL del área de obras (docs/contratos.md): obras, obra (y las secciones del detalle), usuarios y
+// registrarObra.
 
 export type EstadoObra = 'SIN_CONTRATO' | 'EN_EJECUCION' | 'CONCLUIDA';
+export type EstadoPlanilla = 'BORRADOR' | 'PRESENTADA' | 'APROBANDO' | 'APROBADA' | 'OBSERVADA';
+export type EstadoCobro = 'PENDIENTE' | 'VENCIDO' | 'PAGADO';
+
+export type Rol = 'admin' | 'residente' | 'gerente' | 'maestro' | 'almacenero' | 'cliente';
+
+/** Zona de la obra (401, decisión del equipo); opcional: null = «Sin zona». */
+export type ZonaObra = 'NORTE' | 'SUR' | 'ESTE' | 'OESTE' | 'CENTRO';
 
 export interface ObraResumen {
   id: string;
   nombre: string;
   ubicacion: string;
+  /** 401 */
+  zona: ZonaObra | null;
   estado: EstadoObra;
   fechaInicio: string;
   avancePct: number;
@@ -15,17 +30,509 @@ export interface ObraResumen {
   enRiesgo: boolean;
 }
 
-export const CONSULTA_OBRAS = gql<{ obras: ObraResumen[] }, { estado?: EstadoObra; busqueda?: string }>`
+/** Nivel del riesgo de retraso del modelo (402): BAJO < 30 % ≤ MEDIO < 60 % ≤ ALTO. */
+export type NivelRiesgo = 'BAJO' | 'MEDIO' | 'ALTO' | 'SIN_DATOS';
+
+export interface FactorRiesgo {
+  variable: string;
+  /** Texto para la persona, por ejemplo «El avance es de solo 20 %». */
+  descripcion: string;
+  peso: number;
+}
+
+/** Predicción del modelo de riesgo de retraso (402); `probabilidad` de 0 a 1, null con SIN_DATOS. */
+export interface RiesgoRetraso {
+  probabilidad: number | null;
+  nivel: NivelRiesgo;
+  factores: FactorRiesgo[];
+  versionModelo: string | null;
+  calculadaEn: string | null;
+}
+
+export interface Usuario {
+  id: string;
+  nombre: string;
+  correo: string | null;
+}
+
+export interface Partida {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  cantidadContratada: number;
+  precioUnitario: number;
+  meses: string | null;
+  /** Suma de lo aprobado en planillas (006). */
+  ejecutadaAcumulada: number;
+  avancePct: number;
+}
+
+/**
+ * Encabezado, indicadores, contrato y partidas de la obra (002 y 006). Material, fotos, planillas, cobros y finanzas
+ * se piden aparte, cada uno al abrir su sección (006, diseño).
+ */
+export interface Obra {
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  /** 401 */
+  zona: ZonaObra | null;
+  estado: EstadoObra;
+  fechaInicio: string;
+  motivoRechazoContrato: string | null;
+  residente: Usuario | null;
+  maestro: Usuario | null;
+  almacenero: Usuario | null;
+  cliente: Usuario | null;
+  contrato: { contratoId: string | null; monto: number; plazoDias: number; anticipoPct: number; retencionPct: number };
+  avancePct: number;
+  plazoPct: number;
+  enRiesgo: boolean;
+  /** 402: IA; null con SERVICIO_NO_DISPONIBLE si no responde. */
+  riesgoRetraso: RiesgoRetraso | null;
+  partidas: Partida[];
+}
+
+/** Saldo y cobros del contrato (Finanzas); solo para admin y gerente (006, criterio 3). */
+export interface FinanzasObra {
+  saldoDisponible: number;
+  totalCobrado: number;
+  totalReservado: number;
+}
+
+/** Lo que el detalle usa del material del catálogo. */
+export interface MaterialCorto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  unidadPlural: string;
+}
+
+/** Material usado frente al previsto de una partida en el periodo (006, criterios 3 y 5). */
+export interface FilaComparacion {
+  partidaId: string;
+  partidaCodigo: string;
+  material: MaterialCorto;
+  previsto: number;
+  usado: number;
+  /** usado − previsto (la calcula el gateway). */
+  diferencia: number;
+  /** usado > 1,20 × previsto (lo calcula el gateway). */
+  excedido: boolean;
+}
+
+export interface ComparacionMaterial {
+  periodo: string;
+  hayPlanilla: boolean;
+  filas: FilaComparacion[];
+}
+
+/** 301: detección de casco y chaleco hecha en el celular al tomar la foto. */
+export interface DeteccionEpp {
+  personas: number;
+  sinCasco: number;
+  sinChaleco: number;
+  /** Por ejemplo `epp-1.0.0`. */
+  versionModelo: string;
+}
+
+/** Foto de avance (005); la URL firmada vence a los 30 minutos. */
+export interface Foto {
+  id: string;
+  partidaId: string;
+  registradoPor: Pick<Usuario, 'id' | 'nombre'> | null;
+  registradoEn: string;
+  urlDescarga: string;
+  /** 301: null si la foto no se analizó. */
+  deteccion: DeteccionEpp | null;
+}
+
+export interface FotosPagina {
+  items: Foto[];
+  total: number;
+  pagina: number;
+  tamano: number;
+}
+
+/** Revisión de un consumo atípico (403). */
+export type EstadoRevision = 'PENDIENTE' | 'NORMAL' | 'CONFIRMADO';
+
+/** Salida de material que el modelo marcó como rara frente al consumo habitual (403). */
+export interface ConsumoAtipico {
+  id: string;
+  movimientoId: string;
+  obraId: string;
+  materialId: string;
+  /** Materiales (el gateway resuelve el nombre); null si no responde. */
+  material: MaterialCorto | null;
+  partidaId: string;
+  cantidad: number;
+  periodo: string;
+  registradoEn: string;
+  /** 0 a 1: más alto = más raro. */
+  puntaje: number;
+  motivos: string[];
+  estadoRevision: EstadoRevision;
+  revisadoPor: Pick<Usuario, 'id' | 'nombre'> | null;
+  revisadoEn: string | null;
+  comentario: string | null;
+  versionModelo: string;
+}
+
+export interface PlanillaResumen {
+  id: string;
+  numero: number;
+  periodo: string;
+  estado: EstadoPlanilla;
+  neto: number;
+  /** Número del cobro (`COB-AAAA-NNNN`) que Obras guarda al aprobarse la planilla (008); null hasta entonces. */
+  cobroNumero: string | null;
+}
+
+export interface Cobro {
+  id: string;
+  numero: string;
+  planillaId: string;
+  montoNeto: number;
+  emitidoEn: string;
+  venceEn: string;
+  estado: EstadoCobro;
+  /** 201: fecha de pago (`AAAA-MM-DD`); null si no está pagado. */
+  pagadoEn: string | null;
+  /** 201: n.º de comprobante del pago (opcional). */
+  comprobante: string | null;
+  /** 201: correos enviados al cliente por la automatización, ordenados por `enviadoEn`. */
+  envios: EnvioCobro[];
+}
+
+/** 201: tipo de correo que n8n envió al cliente por un cobro. */
+export type TipoEnvioCobro =
+  | 'NOTA_COBRO'
+  | 'RECORDATORIO_POR_VENCER'
+  | 'RECORDATORIO_VENCIDO'
+  | 'CONSTANCIA_PAGO';
+
+export interface EnvioCobro {
+  tipo: TipoEnvioCobro;
+  destinatario: string;
+  /** Instante ISO. */
+  enviadoEn: string;
+}
+
+export interface RegistrarObraEntrada {
+  nombre: string;
+  ubicacion: string;
+  /** 401: se omite si no se eligió. */
+  zona?: ZonaObra;
+  fechaInicio: string;
+  asignaciones: { residenteId: string; maestroId: string; almaceneroId: string; clienteId: string };
+  contrato: { monto: number; plazoDias: number; anticipoPct: number; retencionPct: number; firmadoEn: string };
+  partidas: {
+    codigo: string;
+    nombre: string;
+    unidad: string;
+    cantidadContratada: number;
+    precioUnitario: number;
+    meses?: string | null;
+    insumos?: { materialId: string; cantidadPorUnidad: number }[];
+  }[];
+}
+
+/** Filtros de la lista (006, criterio 2); un filtro vacío no se manda. */
+export interface FiltrosObras {
+  estado?: EstadoObra;
+  busqueda?: string;
+}
+
+export const CONSULTA_OBRAS = gql<{ obras: ObraResumen[] }, FiltrosObras>`
   query Obras($estado: EstadoObra, $busqueda: String) {
     obras(estado: $estado, busqueda: $busqueda) {
       id
       nombre
       ubicacion
+      zona
       estado
       fechaInicio
       avancePct
       plazoPct
       enRiesgo
+    }
+  }
+`;
+
+export const CONSULTA_USUARIOS = gql<{ usuarios: Usuario[] }, { rol: Rol }>`
+  query Usuarios($rol: Rol!) {
+    usuarios(rol: $rol) {
+      id
+      nombre
+      correo
+    }
+  }
+`;
+
+/** Material del catálogo para elegir los insumos previstos de una partida (002, criterio 4). */
+export interface MaterialCatalogo {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  unidadPlural: string;
+}
+
+/** Materiales activos del catálogo (`materiales` de la 003); 100 es el máximo por página que acepta Materiales. */
+export const CONSULTA_MATERIALES_ACTIVOS = gql<{ materiales: { items: MaterialCatalogo[]; total: number } }, { tamano: number }>`
+  query MaterialesActivos($tamano: Int!) {
+    materiales(soloActivos: true, pagina: 1, tamano: $tamano) {
+      items {
+        id
+        codigo
+        nombre
+        unidad
+        unidadPlural
+      }
+      total
+    }
+  }
+`;
+
+export const CONSULTA_OBRA = gql<{ obra: Obra | null }, { id: string }>`
+  query Obra($id: ID!) {
+    obra(id: $id) {
+      id
+      nombre
+      ubicacion
+      zona
+      estado
+      fechaInicio
+      motivoRechazoContrato
+      residente { id nombre correo }
+      maestro { id nombre correo }
+      almacenero { id nombre correo }
+      cliente { id nombre correo }
+      contrato { contratoId monto plazoDias anticipoPct retencionPct }
+      avancePct
+      plazoPct
+      enRiesgo
+      riesgoRetraso {
+        probabilidad
+        nivel
+        factores { variable descripcion peso }
+        versionModelo
+        calculadaEn
+      }
+      partidas { id codigo nombre unidad cantidadContratada precioUnitario meses ejecutadaAcumulada avancePct }
+    }
+  }
+`;
+
+/** Finanzas de la obra: `null` sin error si el rol no es admin ni gerente; con SERVICIO_NO_DISPONIBLE si no responde. */
+export const CONSULTA_FINANZAS_OBRA = gql<{ obra: { id: string; finanzas: FinanzasObra | null } | null }, { id: string }>`
+  query FinanzasObra($id: ID!) {
+    obra(id: $id) {
+      id
+      finanzas { saldoDisponible totalCobrado totalReservado }
+    }
+  }
+`;
+
+// Una consulta por pestaña del detalle: cada una se pide al abrirla y maneja su propio error (006, criterio 4).
+
+/** `null` con el error del servicio (Obras o Materiales) si alguno no responde. */
+export const CONSULTA_MATERIAL_COMPARADO = gql<
+  { obra: { id: string; materialComparado: ComparacionMaterial | null } | null },
+  { id: string; periodo: string }
+>`
+  query MaterialComparado($id: ID!, $periodo: String!) {
+    obra(id: $id) {
+      id
+      materialComparado(periodo: $periodo) {
+        periodo
+        hayPlanilla
+        filas {
+          partidaId
+          partidaCodigo
+          material { id codigo nombre unidad unidadPlural }
+          previsto
+          usado
+          diferencia
+          excedido
+        }
+      }
+    }
+  }
+`;
+
+export const CONSULTA_FOTOS = gql<
+  { obra: { id: string; fotos: FotosPagina } | null },
+  { id: string; pagina: number; tamano: number }
+>`
+  query FotosObra($id: ID!, $pagina: Int!, $tamano: Int!) {
+    obra(id: $id) {
+      id
+      fotos(pagina: $pagina, tamano: $tamano) {
+        items {
+          id
+          partidaId
+          registradoPor { id nombre }
+          registradoEn
+          urlDescarga
+          deteccion { personas sinCasco sinChaleco versionModelo }
+        }
+        total
+        pagina
+        tamano
+      }
+    }
+  }
+`;
+
+/** 007: el gateway la expone cuando Obras tenga `GET /obras/{id}/planillas`. */
+export const CONSULTA_PLANILLAS = gql<{ obra: { id: string; planillas: PlanillaResumen[] } | null }, { id: string }>`
+  query PlanillasObra($id: ID!) {
+    obra(id: $id) {
+      id
+      planillas { id numero periodo estado neto cobroNumero }
+    }
+  }
+`;
+
+const CAMPOS_COBRO = `
+  id numero planillaId montoNeto emitidoEn venceEn estado
+  pagadoEn comprobante envios { tipo destinatario enviadoEn }
+`;
+
+/** `null` sin error si el rol no es admin ni gerente. 201: datos del pago y correos enviados. */
+export const CONSULTA_COBROS = gql<{ obra: { id: string; cobros: Cobro[] | null } | null }, { id: string }>`
+  query CobrosObra($id: ID!) {
+    obra(id: $id) {
+      id
+      cobros { ${CAMPOS_COBRO} }
+    }
+  }
+`;
+
+/** 201: solo admin; no se reintenta. `comprobante` va solo si se escribió. */
+export const MUTACION_REGISTRAR_PAGO_COBRO = gql<
+  { registrarPagoCobro: Cobro },
+  { cobroId: string; pagadoEn: string; comprobante?: string }
+>`
+  mutation RegistrarPagoCobro($cobroId: ID!, $pagadoEn: String!, $comprobante: String) {
+    registrarPagoCobro(cobroId: $cobroId, pagadoEn: $pagadoEn, comprobante: $comprobante) {
+      ${CAMPOS_COBRO}
+    }
+  }
+`;
+
+const CAMPOS_CONSUMO_ATIPICO = `
+  id
+  movimientoId
+  obraId
+  materialId
+  material { id codigo nombre unidad unidadPlural }
+  partidaId
+  cantidad
+  periodo
+  registradoEn
+  puntaje
+  motivos
+  estadoRevision
+  revisadoPor { id nombre }
+  revisadoEn
+  comentario
+  versionModelo
+`;
+
+/** 403: IA; `null` con SERVICIO_NO_DISPONIBLE si no responde. Sin `estado`, todos. */
+export const CONSULTA_CONSUMOS_ATIPICOS = gql<
+  { obra: { id: string; consumosAtipicos: ConsumoAtipico[] | null } | null },
+  { id: string; estado?: EstadoRevision }
+>`
+  query ConsumosAtipicosObra($id: ID!, $estado: EstadoRevision) {
+    obra(id: $id) {
+      id
+      consumosAtipicos(estado: $estado) {
+        ${CAMPOS_CONSUMO_ATIPICO}
+      }
+    }
+  }
+`;
+
+/** 403: solo admin y el residente asignado; no se reintenta. */
+export const MUTACION_REVISAR_CONSUMO_ATIPICO = gql<
+  { revisarConsumoAtipico: ConsumoAtipico },
+  { id: string; estado: EstadoRevision; comentario?: string }
+>`
+  mutation RevisarConsumoAtipico($id: ID!, $estado: EstadoRevision!, $comentario: String) {
+    revisarConsumoAtipico(id: $id, estado: $estado, comentario: $comentario) {
+      ${CAMPOS_CONSUMO_ATIPICO}
+    }
+  }
+`;
+
+/** 502: severidad de un hallazgo de un agente. */
+export type Severidad = 'ALTA' | 'MEDIA' | 'BAJA';
+
+/** 502: un hallazgo vigente de un agente (de su última ejecución TERMINADA). */
+export interface Hallazgo {
+  ejecucionId: string;
+  agente: Agente;
+  obraId: string;
+  obraNombre: string;
+  tipo: string;
+  severidad: Severidad;
+  situacion: string;
+  causaProbable: string;
+  evidencia: { herramienta: string; dato: string }[];
+  detectadoEn: string;
+}
+
+/** 502: lo que muestra la pestaña «Agentes»; cada campo llega en null si IA no responde (SERVICIO_NO_DISPONIBLE). */
+export interface AgentesObra {
+  hallazgos: Hallazgo[] | null;
+  sugerencias: Sugerencia[] | null;
+}
+
+/**
+ * 502: hallazgos vigentes y sugerencias pendientes de la obra, de todos los agentes que el usuario ve (al residente,
+ * IA no le devuelve Control de cobros); la pestaña se queda con los suyos.
+ */
+export const CONSULTA_AGENTES_OBRA = gql<
+  { obra: ({ id: string } & AgentesObra) | null },
+  { id: string }
+>`
+  query AgentesObra($id: ID!) {
+    obra(id: $id) {
+      id
+      hallazgos {
+        ejecucionId
+        agente
+        obraId
+        obraNombre
+        tipo
+        severidad
+        situacion
+        causaProbable
+        evidencia { herramienta dato }
+        detectadoEn
+      }
+      sugerencias(estado: PENDIENTE) {
+        ${CAMPOS_SUGERENCIA}
+      }
+    }
+  }
+`;
+
+/** Devuelve solo el id y el estado: el detalle se consulta después en /obras/{id}. */
+export const MUTACION_REGISTRAR_OBRA = gql<
+  { registrarObra: { id: string; estado: EstadoObra } },
+  { entrada: RegistrarObraEntrada }
+>`
+  mutation RegistrarObra($entrada: RegistrarObraEntrada!) {
+    registrarObra(entrada: $entrada) {
+      id
+      estado
     }
   }
 `;

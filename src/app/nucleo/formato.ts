@@ -1,3 +1,5 @@
+import type { ZonaObra } from '../obras/obras.graphql';
+
 // Formatos de docs/diseno-visual.md («Formatos»): locale es-BO y hora de La Paz.
 const LOCALE = 'es-BO';
 const ZONA_NEGOCIO = 'America/La_Paz';
@@ -26,12 +28,22 @@ const fechasHoras = new Intl.DateTimeFormat(LOCALE, {
 
 /** `Bs 1.250.000,00` */
 export function formatearMonto(monto: number): string {
-  return `Bs ${montos.format(monto)}`;
+  return `Bs ${formatearImporte(monto)}`;
+}
+
+/** `1.250.000,00` (sin «Bs», para mensajes que ya lo traen: «el presupuesto (Bs {presupuesto})»). */
+export function formatearImporte(monto: number): string {
+  return montos.format(monto);
 }
 
 /** `120,5 m²` (hasta 3 decimales). */
 export function formatearCantidad(cantidad: number, unidad: string): string {
-  return `${cantidades.format(cantidad)} ${unidad}`;
+  return `${formatearNumero(cantidad)} ${unidad}`;
+}
+
+/** `1.234,568` (hasta 3 decimales, sin unidad: para tablas que muestran la unidad en su propia columna). */
+export function formatearNumero(cantidad: number): string {
+  return cantidades.format(cantidad);
 }
 
 /** `32,5 %` */
@@ -48,7 +60,44 @@ export function formatearFecha(fecha: string): string {
   return fechas.format(new Date(fecha));
 }
 
+const meses = new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC', month: 'long' });
+
+/** `Noviembre 2026` para el periodo `2026-11`. */
+export function formatearPeriodo(periodo: string): string {
+  const [anio, mes] = periodo.split('-').map(Number);
+  const nombre = meses.format(new Date(Date.UTC(anio, mes - 1, 1)));
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`;
+}
+
 /** `15/11/2026 14:30` en hora de La Paz. */
 export function formatearFechaHora(instante: string): string {
   return fechasHoras.format(new Date(instante)).replace(', ', ' ');
+}
+
+const diasHoras = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: ZONA_NEGOCIO,
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+/** `15/11 14:30` en hora de La Paz (borrador local de la 104). */
+export function formatearDiaHora(instante: string): string {
+  return diasHoras.format(new Date(instante)).replace(', ', ' ');
+}
+
+/** Nombre de cada zona (401, criterio 1), en el orden del selector. */
+export const ETIQUETA_ZONA: Record<ZonaObra, string> = {
+  NORTE: 'Norte',
+  SUR: 'Sur',
+  ESTE: 'Este',
+  OESTE: 'Oeste',
+  CENTRO: 'Centro',
+};
+
+/** `Zona Norte`, o `Sin zona` si la obra no la tiene (401, criterio 2). */
+export function formatearZona(zona: ZonaObra | null | undefined): string {
+  return zona ? `Zona ${ETIQUETA_ZONA[zona]}` : 'Sin zona';
 }
